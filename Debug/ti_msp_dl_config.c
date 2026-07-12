@@ -43,6 +43,7 @@
 DL_TimerG_backupConfig gPWM_1Backup;
 DL_TimerA_backupConfig gE3_BBackup;
 DL_TimerA_backupConfig gTIMER_0Backup;
+DL_SPI_backupConfig gSPI_IMU660RBBackup;
 
 /*
  *  ======== SYSCFG_DL_init ========
@@ -61,11 +62,13 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     SYSCFG_DL_TIMER_0_init();
     SYSCFG_DL_I2C_OLED_init();
     SYSCFG_DL_UART_0_init();
+    SYSCFG_DL_SPI_IMU660RB_init();
     /* Ensure backup structures have no valid state */
 	gPWM_1Backup.backupRdy 	= false;
 	gE3_BBackup.backupRdy 	= false;
 	gTIMER_0Backup.backupRdy 	= false;
 
+	gSPI_IMU660RBBackup.backupRdy 	= false;
 
 }
 /*
@@ -79,6 +82,7 @@ SYSCONFIG_WEAK bool SYSCFG_DL_saveConfiguration(void)
 	retStatus &= DL_TimerG_saveConfiguration(PWM_1_INST, &gPWM_1Backup);
 	retStatus &= DL_TimerA_saveConfiguration(E3_B_INST, &gE3_BBackup);
 	retStatus &= DL_TimerA_saveConfiguration(TIMER_0_INST, &gTIMER_0Backup);
+	retStatus &= DL_SPI_saveConfiguration(SPI_IMU660RB_INST, &gSPI_IMU660RBBackup);
 
     return retStatus;
 }
@@ -91,6 +95,7 @@ SYSCONFIG_WEAK bool SYSCFG_DL_restoreConfiguration(void)
 	retStatus &= DL_TimerG_restoreConfiguration(PWM_1_INST, &gPWM_1Backup, false);
 	retStatus &= DL_TimerA_restoreConfiguration(E3_B_INST, &gE3_BBackup, false);
 	retStatus &= DL_TimerA_restoreConfiguration(TIMER_0_INST, &gTIMER_0Backup, false);
+	retStatus &= DL_SPI_restoreConfiguration(SPI_IMU660RB_INST, &gSPI_IMU660RBBackup);
 
     return retStatus;
 }
@@ -106,6 +111,7 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_TimerA_reset(TIMER_0_INST);
     DL_I2C_reset(I2C_OLED_INST);
     DL_UART_Main_reset(UART_0_INST);
+    DL_SPI_reset(SPI_IMU660RB_INST);
 
     DL_GPIO_enablePower(GPIOA);
     DL_GPIO_enablePower(GPIOB);
@@ -116,6 +122,7 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_TimerA_enablePower(TIMER_0_INST);
     DL_I2C_enablePower(I2C_OLED_INST);
     DL_UART_Main_enablePower(UART_0_INST);
+    DL_SPI_enablePower(SPI_IMU660RB_INST);
     delay_cycles(POWER_STARTUP_DELAY);
 }
 
@@ -150,6 +157,15 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
     DL_GPIO_initPeripheralInputFunction(
         GPIO_UART_0_IOMUX_RX, GPIO_UART_0_IOMUX_RX_FUNC);
 
+    DL_GPIO_initPeripheralOutputFunction(
+        GPIO_SPI_IMU660RB_IOMUX_SCLK, GPIO_SPI_IMU660RB_IOMUX_SCLK_FUNC);
+    DL_GPIO_initPeripheralOutputFunction(
+        GPIO_SPI_IMU660RB_IOMUX_PICO, GPIO_SPI_IMU660RB_IOMUX_PICO_FUNC);
+    DL_GPIO_initPeripheralInputFunction(
+        GPIO_SPI_IMU660RB_IOMUX_POCI, GPIO_SPI_IMU660RB_IOMUX_POCI_FUNC);
+
+    DL_GPIO_initDigitalOutput(GPIO_IMU660RB_PIN_IMU660RB_CS_IOMUX);
+
     DL_GPIO_initDigitalInputFeatures(ECO_E1_A_IOMUX,
 		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_NONE,
 		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
@@ -174,22 +190,32 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 
     DL_GPIO_initDigitalOutput(DIR_DIN2_IOMUX);
 
+    DL_GPIO_initDigitalOutput(TEST_IMU_IOMUX);
+
+    DL_GPIO_initDigitalOutput(TEST_Fusion_IOMUX);
+
     DL_GPIO_clearPins(GPIOA, DIR_AIN2_PIN |
 		DIR_CIN1_PIN |
 		DIR_DIN1_PIN |
-		DIR_DIN2_PIN);
+		DIR_DIN2_PIN |
+		TEST_Fusion_PIN);
     DL_GPIO_enableOutput(GPIOA, DIR_AIN2_PIN |
 		DIR_CIN1_PIN |
 		DIR_DIN1_PIN |
-		DIR_DIN2_PIN);
-    DL_GPIO_clearPins(GPIOB, DIR_AIN1_PIN |
+		DIR_DIN2_PIN |
+		TEST_Fusion_PIN);
+    DL_GPIO_clearPins(GPIOB, GPIO_IMU660RB_PIN_IMU660RB_CS_PIN |
+		DIR_AIN1_PIN |
 		DIR_BIN1_PIN |
 		DIR_BIN2_PIN |
-		DIR_CIN2_PIN);
-    DL_GPIO_enableOutput(GPIOB, DIR_AIN1_PIN |
+		DIR_CIN2_PIN |
+		TEST_IMU_PIN);
+    DL_GPIO_enableOutput(GPIOB, GPIO_IMU660RB_PIN_IMU660RB_CS_PIN |
+		DIR_AIN1_PIN |
 		DIR_BIN1_PIN |
 		DIR_BIN2_PIN |
-		DIR_CIN2_PIN);
+		DIR_CIN2_PIN |
+		TEST_IMU_PIN);
 
 }
 
@@ -490,5 +516,37 @@ SYSCONFIG_WEAK void SYSCFG_DL_UART_0_init(void)
 
 
     DL_UART_Main_enable(UART_0_INST);
+}
+
+static const DL_SPI_Config gSPI_IMU660RB_config = {
+    .mode        = DL_SPI_MODE_CONTROLLER,
+    .frameFormat = DL_SPI_FRAME_FORMAT_MOTO3_POL0_PHA0,
+    .parity      = DL_SPI_PARITY_NONE,
+    .dataSize    = DL_SPI_DATA_SIZE_8,
+    .bitOrder    = DL_SPI_BIT_ORDER_MSB_FIRST,
+};
+
+static const DL_SPI_ClockConfig gSPI_IMU660RB_clockConfig = {
+    .clockSel    = DL_SPI_CLOCK_BUSCLK,
+    .divideRatio = DL_SPI_CLOCK_DIVIDE_RATIO_1
+};
+
+SYSCONFIG_WEAK void SYSCFG_DL_SPI_IMU660RB_init(void) {
+    DL_SPI_setClockConfig(SPI_IMU660RB_INST, (DL_SPI_ClockConfig *) &gSPI_IMU660RB_clockConfig);
+
+    DL_SPI_init(SPI_IMU660RB_INST, (DL_SPI_Config *) &gSPI_IMU660RB_config);
+
+    /* Configure Controller mode */
+    /*
+     * Set the bit rate clock divider to generate the serial output clock
+     *     outputBitRate = (spiInputClock) / ((1 + SCR) * 2)
+     *     8000000 = (32000000)/((1 + 1) * 2)
+     */
+    DL_SPI_setBitRateSerialClockDivider(SPI_IMU660RB_INST, 1);
+    /* Set RX and TX FIFO threshold levels */
+    DL_SPI_setFIFOThreshold(SPI_IMU660RB_INST, DL_SPI_RX_FIFO_LEVEL_1_2_FULL, DL_SPI_TX_FIFO_LEVEL_1_2_EMPTY);
+
+    /* Enable module */
+    DL_SPI_enable(SPI_IMU660RB_INST);
 }
 

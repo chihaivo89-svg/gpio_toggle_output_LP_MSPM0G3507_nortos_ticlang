@@ -186,7 +186,32 @@ extern "C" {
 
 
 
+/* Defines for SPI_IMU660RB */
+#define SPI_IMU660RB_INST                                                  SPI1
+#define SPI_IMU660RB_INST_IRQHandler                            SPI1_IRQHandler
+#define SPI_IMU660RB_INST_INT_IRQN                                SPI1_INT_IRQn
+#define GPIO_SPI_IMU660RB_PICO_PORT                                       GPIOB
+#define GPIO_SPI_IMU660RB_PICO_PIN                               DL_GPIO_PIN_22
+#define GPIO_SPI_IMU660RB_IOMUX_PICO                            (IOMUX_PINCM50)
+#define GPIO_SPI_IMU660RB_IOMUX_PICO_FUNC            IOMUX_PINCM50_PF_SPI1_PICO
+#define GPIO_SPI_IMU660RB_POCI_PORT                                       GPIOB
+#define GPIO_SPI_IMU660RB_POCI_PIN                               DL_GPIO_PIN_14
+#define GPIO_SPI_IMU660RB_IOMUX_POCI                            (IOMUX_PINCM31)
+#define GPIO_SPI_IMU660RB_IOMUX_POCI_FUNC            IOMUX_PINCM31_PF_SPI1_POCI
+/* GPIO configuration for SPI_IMU660RB */
+#define GPIO_SPI_IMU660RB_SCLK_PORT                                       GPIOA
+#define GPIO_SPI_IMU660RB_SCLK_PIN                               DL_GPIO_PIN_17
+#define GPIO_SPI_IMU660RB_IOMUX_SCLK                            (IOMUX_PINCM39)
+#define GPIO_SPI_IMU660RB_IOMUX_SCLK_FUNC            IOMUX_PINCM39_PF_SPI1_SCLK
 
+
+
+/* Port definition for Pin Group GPIO_IMU660RB */
+#define GPIO_IMU660RB_PORT                                               (GPIOB)
+
+/* Defines for PIN_IMU660RB_CS: GPIOB.0 with pinCMx 12 on package pin 47 */
+#define GPIO_IMU660RB_PIN_IMU660RB_CS_PIN                        (DL_GPIO_PIN_0)
+#define GPIO_IMU660RB_PIN_IMU660RB_CS_IOMUX                      (IOMUX_PINCM12)
 /* Defines for E1_A: GPIOA.13 with pinCMx 35 on package pin 6 */
 #define ECO_E1_A_PORT                                                    (GPIOA)
 #define ECO_E1_A_PIN                                            (DL_GPIO_PIN_13)
@@ -227,6 +252,14 @@ extern "C" {
 #define DIR_DIN2_PORT                                                    (GPIOA)
 #define DIR_DIN2_PIN                                            (DL_GPIO_PIN_26)
 #define DIR_DIN2_IOMUX                                           (IOMUX_PINCM59)
+/* Defines for IMU: GPIOB.1 with pinCMx 13 on package pin 48 */
+#define TEST_IMU_PORT                                                    (GPIOB)
+#define TEST_IMU_PIN                                             (DL_GPIO_PIN_1)
+#define TEST_IMU_IOMUX                                           (IOMUX_PINCM13)
+/* Defines for Fusion: GPIOA.2 with pinCMx 7 on package pin 42 */
+#define TEST_Fusion_PORT                                                 (GPIOA)
+#define TEST_Fusion_PIN                                          (DL_GPIO_PIN_2)
+#define TEST_Fusion_IOMUX                                         (IOMUX_PINCM7)
 
 
 /* clang-format on */
@@ -242,6 +275,7 @@ void SYSCFG_DL_E3_B_init(void);
 void SYSCFG_DL_TIMER_0_init(void);
 void SYSCFG_DL_I2C_OLED_init(void);
 void SYSCFG_DL_UART_0_init(void);
+void SYSCFG_DL_SPI_IMU660RB_init(void);
 
 
 bool SYSCFG_DL_saveConfiguration(void);
