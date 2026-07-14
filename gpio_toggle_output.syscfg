@@ -86,12 +86,20 @@ GPIO3.$name                         = "GPIO_IMU660RB";
 GPIO3.associatedPins[0].$name       = "PIN_IMU660RB_CS";
 GPIO3.associatedPins[0].pin.$assign = "PB0";
 
-GPIO4.$name                         = "TEST";
-GPIO4.associatedPins.create(2);
-GPIO4.associatedPins[0].$name       = "IMU";
-GPIO4.associatedPins[0].pin.$assign = "PB1";
-GPIO4.associatedPins[1].$name       = "Fusion";
-GPIO4.associatedPins[1].pin.$assign = "PA2";
+GPIO4.$name                         = "KEY";
+GPIO4.associatedPins.create(4);
+GPIO4.associatedPins[0].$name       = "KEY1";
+GPIO4.associatedPins[0].direction   = "INPUT";
+GPIO4.associatedPins[0].pin.$assign = "PA2";
+GPIO4.associatedPins[1].$name       = "KEY2";
+GPIO4.associatedPins[1].direction   = "INPUT";
+GPIO4.associatedPins[1].pin.$assign = "PB1";
+GPIO4.associatedPins[2].$name       = "KEY3";
+GPIO4.associatedPins[2].direction   = "INPUT";
+GPIO4.associatedPins[2].pin.$assign = "PB17";
+GPIO4.associatedPins[3].$name       = "KEY4";
+GPIO4.associatedPins[3].direction   = "INPUT";
+GPIO4.associatedPins[3].pin.$assign = "PB20";
 
 I2C1.basicEnableController             = true;
 I2C1.basicControllerStandardBusSpeed   = "Fast";

@@ -252,14 +252,22 @@ extern "C" {
 #define DIR_DIN2_PORT                                                    (GPIOA)
 #define DIR_DIN2_PIN                                            (DL_GPIO_PIN_26)
 #define DIR_DIN2_IOMUX                                           (IOMUX_PINCM59)
-/* Defines for IMU: GPIOB.1 with pinCMx 13 on package pin 48 */
-#define TEST_IMU_PORT                                                    (GPIOB)
-#define TEST_IMU_PIN                                             (DL_GPIO_PIN_1)
-#define TEST_IMU_IOMUX                                           (IOMUX_PINCM13)
-/* Defines for Fusion: GPIOA.2 with pinCMx 7 on package pin 42 */
-#define TEST_Fusion_PORT                                                 (GPIOA)
-#define TEST_Fusion_PIN                                          (DL_GPIO_PIN_2)
-#define TEST_Fusion_IOMUX                                         (IOMUX_PINCM7)
+/* Defines for KEY1: GPIOA.2 with pinCMx 7 on package pin 42 */
+#define KEY_KEY1_PORT                                                    (GPIOA)
+#define KEY_KEY1_PIN                                             (DL_GPIO_PIN_2)
+#define KEY_KEY1_IOMUX                                            (IOMUX_PINCM7)
+/* Defines for KEY2: GPIOB.1 with pinCMx 13 on package pin 48 */
+#define KEY_KEY2_PORT                                                    (GPIOB)
+#define KEY_KEY2_PIN                                             (DL_GPIO_PIN_1)
+#define KEY_KEY2_IOMUX                                           (IOMUX_PINCM13)
+/* Defines for KEY3: GPIOB.17 with pinCMx 43 on package pin 14 */
+#define KEY_KEY3_PORT                                                    (GPIOB)
+#define KEY_KEY3_PIN                                            (DL_GPIO_PIN_17)
+#define KEY_KEY3_IOMUX                                           (IOMUX_PINCM43)
+/* Defines for KEY4: GPIOB.20 with pinCMx 48 on package pin 19 */
+#define KEY_KEY4_PORT                                                    (GPIOB)
+#define KEY_KEY4_PIN                                            (DL_GPIO_PIN_20)
+#define KEY_KEY4_IOMUX                                           (IOMUX_PINCM48)
 
 
 /* clang-format on */

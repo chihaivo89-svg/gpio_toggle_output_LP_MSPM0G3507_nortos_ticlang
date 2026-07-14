@@ -13,6 +13,6 @@
 	<activeTargetConfiguration value="targetConfigs/MSPM0G3507.ccxml"/>
 	<isTargetConfigurationManual value="false"/>
 	<sourceLookupPath value="${COM_TI_MSPM0_SDK_INSTALL_DIR}/source/ti/driverlib"/>
-	<origin value="C:\ti\mspm0_sdk_2_10_00_04\examples\nortos\LP_MSPM0G3507\driverlib\gpio_toggle_output\ticlang\gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.projectspec"/>
+	<origin value="D:/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang(3)/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang"/>
 	<filesToOpen value="README.md,gpio_toggle_output.syscfg"/>
 </projectOptions>

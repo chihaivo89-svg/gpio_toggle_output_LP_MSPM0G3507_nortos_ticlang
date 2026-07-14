@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS
+CG_TOOL_ROOT := C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS
 
 GEN_OPTS__FLAG := @"./device.opt" 
 GEN_CMDS__FLAG := -Wl,-l"./device_linker.cmd" 
@@ -13,6 +13,11 @@ ORDERED_OBJS += \
 "./gpio_toggle_output.o" \
 "./ti_msp_dl_config.o" \
 "./startup_mspm0g350x_ticlang.o" \
+"./hardware/IMU660RB/Fusion/FusionAhrs.o" \
+"./hardware/IMU660RB/Fusion/FusionCompass.o" \
+"./hardware/IMU660RB/Fusion/FusionOffset.o" \
+"./hardware/IMU660RB/imu660rb.o" \
+"./hardware/IMU660RB/lsm6dsr_reg.o" \
 "./hardware/clock.o" \
 "./hardware/delay.o" \
 "./hardware/encoder.o" \
@@ -30,8 +35,12 @@ RMDIR := RMDIR /S/Q
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include subdir_vars.mk
+-include hardware/IMU660RB/Fusion/subdir_vars.mk
+-include hardware/IMU660RB/subdir_vars.mk
 -include hardware/subdir_vars.mk
 -include subdir_rules.mk
+-include hardware/IMU660RB/Fusion/subdir_rules.mk
+-include hardware/IMU660RB/subdir_rules.mk
 -include hardware/subdir_rules.mk
 -include objects.mk
 
@@ -135,16 +144,18 @@ all: $(OBJS) $(GEN_CMDS)
 
 # Tool invocations
 gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.out: $(OBJS) $(GEN_CMDS)
-	@echo 'Arm Linker - building target: "$@"'
-	"C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wall -Wl,-m"gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.map" -Wl,-i"C:/ti/mspm0_sdk_2_10_00_04/source" -Wl,-i"C:/Users/26447/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang" -Wl,-i"C:/Users/26447/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/Debug/syscfg" -Wl,-i"C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang_linkInfo.xml" -Wl,--rom_model -o "gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.out" $(ORDERED_OBJS)
+	@echo 'Building target: "$@"'
+	@echo 'Invoking: Arm Linker'
+	"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -gdwarf-3 -Wall -Wl,-m"gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.map" -Wl,-i"C:/ti/mspm0_sdk_2_09_00_01/source" -Wl,-i"C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang" -Wl,-i"C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/Debug/syscfg" -Wl,-i"C:/ti/ccs2041/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang_linkInfo.xml" -Wl,--rom_model -o "gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "gpio_toggle_output.o" "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "hardware\clock.o" "hardware\delay.o" "hardware\encoder.o" "hardware\motor.o" "hardware\oled_hardware_i2c.o" 
-	-$(RM) "gpio_toggle_output.d" "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "hardware\clock.d" "hardware\delay.d" "hardware\encoder.d" "hardware\motor.d" "hardware\oled_hardware_i2c.d" 
+	-$(RM) "gpio_toggle_output.o" "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "hardware\IMU660RB\Fusion\FusionAhrs.o" "hardware\IMU660RB\Fusion\FusionCompass.o" "hardware\IMU660RB\Fusion\FusionOffset.o" "hardware\IMU660RB\imu660rb.o" "hardware\IMU660RB\lsm6dsr_reg.o" "hardware\clock.o" "hardware\delay.o" "hardware\encoder.o" "hardware\motor.o" "hardware\oled_hardware_i2c.o" 
+	-$(RM) "gpio_toggle_output.d" "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "hardware\IMU660RB\Fusion\FusionAhrs.d" "hardware\IMU660RB\Fusion\FusionCompass.d" "hardware\IMU660RB\Fusion\FusionOffset.d" "hardware\IMU660RB\imu660rb.d" "hardware\IMU660RB\lsm6dsr_reg.d" "hardware\clock.d" "hardware\delay.d" "hardware\encoder.d" "hardware\motor.d" "hardware\oled_hardware_i2c.d" 
+	-@echo 'Finished clean'
 	-@echo ' '
 
 .PHONY: all clean dependents

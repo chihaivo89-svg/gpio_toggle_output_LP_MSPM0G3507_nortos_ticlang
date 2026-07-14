@@ -77,7 +77,7 @@ void E3_B_INST_IRQHandler(void)
 void encoder_task(void)
 {
     s_encTick++;
-    if (s_encTick < 20) {
+    if (s_encTick < 4) {    /* 5ms × 4 = 20ms */
         return;     /* 未到 20ms */
     }
     s_encTick = 0;

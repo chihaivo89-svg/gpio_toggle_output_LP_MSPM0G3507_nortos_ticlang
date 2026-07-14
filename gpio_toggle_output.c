@@ -22,7 +22,7 @@ static char oled_buf[24];
 
 /* ---- TIMER_0 测试（1ms 计数） ---- */
 volatile uint32_t gTimerTest    = 0;
-static uint32_t   gLastSpeedSet = 0;
+//static uint32_t   gLastSpeedSet = 0;
 
 /* ---- 5ms 主调度节拍 ---- */
 static uint8_t sched_tick = 0;
@@ -45,15 +45,15 @@ void TIMER_0_INST_IRQHandler(void)
             switch (sched_tick) {
                 case 0:  /* 0ms: 编码器 + IMU 读取 */
                     encoder_task();
-                    DL_GPIO_setPins(TEST_IMU_PORT, TEST_IMU_PIN);
+                    //DL_GPIO_setPins(TEST_IMU_PORT, TEST_IMU_PIN);
                     Read_IMU660RB();
-                    DL_GPIO_clearPins(TEST_IMU_PORT, TEST_IMU_PIN);
+                    //DL_GPIO_clearPins(TEST_IMU_PORT, TEST_IMU_PIN);
                     break;
 
                 case 1:  /* 1ms: 姿态解算 */
-                    DL_GPIO_setPins(TEST_Fusion_PORT, TEST_Fusion_PIN);
+                    //DL_GPIO_setPins(TEST_Fusion_PORT, TEST_Fusion_PIN);
                     FusionTasks();
-                    DL_GPIO_clearPins(TEST_Fusion_PORT, TEST_Fusion_PIN);
+                    //DL_GPIO_clearPins(TEST_Fusion_PORT, TEST_Fusion_PIN);
                     break;
 
                 case 2:  /* 2ms: 电机速度 PID（预留） */
