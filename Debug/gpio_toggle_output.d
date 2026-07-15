@@ -89,6 +89,7 @@ gpio_toggle_output.o: ../gpio_toggle_output.c \
  C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/motor.h \
  C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/encoder.h \
  C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/key.h \
+ C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/vofa.h \
  C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/imu660rb.h \
  C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/Fusion.h \
  C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionAhrs.h \
@@ -186,6 +187,7 @@ C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticla
 C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/motor.h:
 C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/encoder.h:
 C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/key.h:
+C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/vofa.h:
 C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/imu660rb.h:
 C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/Fusion.h:
 C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionAhrs.h:

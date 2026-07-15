@@ -12,6 +12,7 @@
 #include "motor.h"
 #include "encoder.h"
 #include "key.h"
+#include "vofa.h"
 #include "IMU660RB/imu660rb.h"
 
 /* ---- UART ---- */
@@ -102,6 +103,8 @@ void UART_0_INST_IRQHandler(void)
 
 int main(void)
 {
+    VOFA_SpeedData vofaSpeedData = {0};
+
     SYSCFG_DL_init();
 
     SysTick_Init();
@@ -111,6 +114,7 @@ int main(void)
     NVIC_EnableIRQ(TIMER_0_INST_INT_IRQN);
 
     Key_Init();
+    VOFA_Init();
 
     /* 启动编码器捕获 */
     Encoder_Start();
@@ -133,6 +137,14 @@ int main(void)
     //Motor_SetSpeed(MOTOR4, 500);
 
     while (1) {
+        /*
+         * 当前先观察编码器原始速度：单位为脉冲/20ms。
+         * 目标速度和 PID 输出保持 0，不会在此处启动任何电机。
+         */
+        vofaSpeedData.leftActual  = Encoder_GetPulses(&gEncMotor3);
+        vofaSpeedData.rightActual = Encoder_GetPulses(&gEncMotor1);
+        VOFA_Update(&vofaSpeedData);
+
         if (gDataReceived) {
             gDataReceived = false;
             DL_UART_Main_transmitDataBlocking(UART_0_INST, gRxByte);

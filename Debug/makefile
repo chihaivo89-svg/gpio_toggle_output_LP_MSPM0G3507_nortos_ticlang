@@ -24,6 +24,7 @@ ORDERED_OBJS += \
 "./hardware/key.o" \
 "./hardware/motor.o" \
 "./hardware/oled_hardware_i2c.o" \
+"./hardware/vofa.o" \
 $(GEN_CMDS__FLAG) \
 -Wl,-ldevice.cmd.genlibs \
 -Wl,-llibc.a \
@@ -154,8 +155,8 @@ gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang.out: $(OBJS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "gpio_toggle_output.o" "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "hardware\IMU660RB\Fusion\FusionAhrs.o" "hardware\IMU660RB\Fusion\FusionCompass.o" "hardware\IMU660RB\Fusion\FusionOffset.o" "hardware\IMU660RB\imu660rb.o" "hardware\IMU660RB\lsm6dsr_reg.o" "hardware\clock.o" "hardware\delay.o" "hardware\encoder.o" "hardware\key.o" "hardware\motor.o" "hardware\oled_hardware_i2c.o" 
-	-$(RM) "gpio_toggle_output.d" "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "hardware\IMU660RB\Fusion\FusionAhrs.d" "hardware\IMU660RB\Fusion\FusionCompass.d" "hardware\IMU660RB\Fusion\FusionOffset.d" "hardware\IMU660RB\imu660rb.d" "hardware\IMU660RB\lsm6dsr_reg.d" "hardware\clock.d" "hardware\delay.d" "hardware\encoder.d" "hardware\key.d" "hardware\motor.d" "hardware\oled_hardware_i2c.d" 
+	-$(RM) "gpio_toggle_output.o" "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "hardware\IMU660RB\Fusion\FusionAhrs.o" "hardware\IMU660RB\Fusion\FusionCompass.o" "hardware\IMU660RB\Fusion\FusionOffset.o" "hardware\IMU660RB\imu660rb.o" "hardware\IMU660RB\lsm6dsr_reg.o" "hardware\clock.o" "hardware\delay.o" "hardware\encoder.o" "hardware\key.o" "hardware\motor.o" "hardware\oled_hardware_i2c.o" "hardware\vofa.o" 
+	-$(RM) "gpio_toggle_output.d" "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "hardware\IMU660RB\Fusion\FusionAhrs.d" "hardware\IMU660RB\Fusion\FusionCompass.d" "hardware\IMU660RB\Fusion\FusionOffset.d" "hardware\IMU660RB\imu660rb.d" "hardware\IMU660RB\lsm6dsr_reg.d" "hardware\clock.d" "hardware\delay.d" "hardware\encoder.d" "hardware\key.d" "hardware\motor.d" "hardware\oled_hardware_i2c.d" "hardware\vofa.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

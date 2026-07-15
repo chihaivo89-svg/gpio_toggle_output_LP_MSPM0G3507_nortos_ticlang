@@ -11,7 +11,8 @@ C_SRCS += \
 ../hardware/encoder.c \
 ../hardware/key.c \
 ../hardware/motor.c \
-../hardware/oled_hardware_i2c.c 
+../hardware/oled_hardware_i2c.c \
+../hardware/vofa.c 
 
 C_DEPS += \
 ./hardware/clock.d \
@@ -19,7 +20,8 @@ C_DEPS += \
 ./hardware/encoder.d \
 ./hardware/key.d \
 ./hardware/motor.d \
-./hardware/oled_hardware_i2c.d 
+./hardware/oled_hardware_i2c.d \
+./hardware/vofa.d 
 
 OBJS += \
 ./hardware/clock.o \
@@ -27,7 +29,8 @@ OBJS += \
 ./hardware/encoder.o \
 ./hardware/key.o \
 ./hardware/motor.o \
-./hardware/oled_hardware_i2c.o 
+./hardware/oled_hardware_i2c.o \
+./hardware/vofa.o 
 
 OBJS__QUOTED += \
 "hardware\clock.o" \
@@ -35,7 +38,8 @@ OBJS__QUOTED += \
 "hardware\encoder.o" \
 "hardware\key.o" \
 "hardware\motor.o" \
-"hardware\oled_hardware_i2c.o" 
+"hardware\oled_hardware_i2c.o" \
+"hardware\vofa.o" 
 
 C_DEPS__QUOTED += \
 "hardware\clock.d" \
@@ -43,7 +47,8 @@ C_DEPS__QUOTED += \
 "hardware\encoder.d" \
 "hardware\key.d" \
 "hardware\motor.d" \
-"hardware\oled_hardware_i2c.d" 
+"hardware\oled_hardware_i2c.d" \
+"hardware\vofa.d" 
 
 C_SRCS__QUOTED += \
 "../hardware/clock.c" \
@@ -51,6 +56,7 @@ C_SRCS__QUOTED += \
 "../hardware/encoder.c" \
 "../hardware/key.c" \
 "../hardware/motor.c" \
-"../hardware/oled_hardware_i2c.c" 
+"../hardware/oled_hardware_i2c.c" \
+"../hardware/vofa.c" 
 
 
