@@ -9,6 +9,7 @@
 "./hardware/clock.o"
 "./hardware/delay.o"
 "./hardware/encoder.o"
+"./hardware/key.o"
 "./hardware/motor.o"
 "./hardware/oled_hardware_i2c.o"
 -l"./device_linker.cmd"

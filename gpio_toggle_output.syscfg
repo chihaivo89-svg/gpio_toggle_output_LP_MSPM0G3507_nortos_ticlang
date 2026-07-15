@@ -1,9 +1,9 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-64(PM)" --product "mspm0_sdk@2.10.00.04"
- * @v2CliArgs --device "MSPM0G3507" --package "LQFP-64(PM)" --product "mspm0_sdk@2.10.00.04"
- * @versions {"tool":"1.27.0+4565"}
+ * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-64(PM)" --product "mspm0_sdk@2.09.00.00"
+ * @v2CliArgs --device "MSPM0G3507" --package "LQFP-64(PM)" --product "mspm0_sdk@2.09.00.00"
+ * @versions {"tool":"1.26.0+4407"}
  */
 
 /**
@@ -86,20 +86,24 @@ GPIO3.$name                         = "GPIO_IMU660RB";
 GPIO3.associatedPins[0].$name       = "PIN_IMU660RB_CS";
 GPIO3.associatedPins[0].pin.$assign = "PB0";
 
-GPIO4.$name                         = "KEY";
+GPIO4.$name                              = "KEY";
 GPIO4.associatedPins.create(4);
-GPIO4.associatedPins[0].$name       = "KEY1";
-GPIO4.associatedPins[0].direction   = "INPUT";
-GPIO4.associatedPins[0].pin.$assign = "PA2";
-GPIO4.associatedPins[1].$name       = "KEY2";
-GPIO4.associatedPins[1].direction   = "INPUT";
-GPIO4.associatedPins[1].pin.$assign = "PB1";
-GPIO4.associatedPins[2].$name       = "KEY3";
-GPIO4.associatedPins[2].direction   = "INPUT";
-GPIO4.associatedPins[2].pin.$assign = "PB17";
-GPIO4.associatedPins[3].$name       = "KEY4";
-GPIO4.associatedPins[3].direction   = "INPUT";
-GPIO4.associatedPins[3].pin.$assign = "PB20";
+GPIO4.associatedPins[0].$name            = "KEY1";
+GPIO4.associatedPins[0].direction        = "INPUT";
+GPIO4.associatedPins[0].internalResistor = "PULL_UP";
+GPIO4.associatedPins[0].pin.$assign      = "PA2";
+GPIO4.associatedPins[1].$name            = "KEY2";
+GPIO4.associatedPins[1].direction        = "INPUT";
+GPIO4.associatedPins[1].internalResistor = "PULL_UP";
+GPIO4.associatedPins[1].pin.$assign      = "PB1";
+GPIO4.associatedPins[2].$name            = "KEY3";
+GPIO4.associatedPins[2].direction        = "INPUT";
+GPIO4.associatedPins[2].internalResistor = "PULL_UP";
+GPIO4.associatedPins[2].pin.$assign      = "PB17";
+GPIO4.associatedPins[3].$name            = "KEY4";
+GPIO4.associatedPins[3].direction        = "INPUT";
+GPIO4.associatedPins[3].internalResistor = "PULL_UP";
+GPIO4.associatedPins[3].pin.$assign      = "PB20";
 
 I2C1.basicEnableController             = true;
 I2C1.basicControllerStandardBusSpeed   = "Fast";
@@ -139,18 +143,18 @@ PWM2.ccp1PinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric7";
 
 SPI1.$name                              = "SPI_IMU660RB";
 SPI1.frameFormat                        = "MOTO3";
-SPI1.sclkPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric9";
 SPI1.sclkPinConfig.direction            = scripting.forceWrite("OUTPUT");
 SPI1.sclkPinConfig.onlyInternalResistor = scripting.forceWrite(false);
 SPI1.sclkPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
-SPI1.mosiPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric11";
+SPI1.sclkPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric9";
 SPI1.mosiPinConfig.direction            = scripting.forceWrite("OUTPUT");
 SPI1.mosiPinConfig.hideOutputInversion  = scripting.forceWrite(false);
 SPI1.mosiPinConfig.onlyInternalResistor = scripting.forceWrite(false);
 SPI1.mosiPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
-SPI1.misoPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric12";
+SPI1.mosiPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric11";
 SPI1.misoPinConfig.onlyInternalResistor = scripting.forceWrite(false);
 SPI1.misoPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
+SPI1.misoPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric12";
 SPI1.peripheral.sclkPin.$assign         = "PA17";
 SPI1.peripheral.mosiPin.$assign         = "PB22";
 SPI1.peripheral.misoPin.$assign         = "PB14";
