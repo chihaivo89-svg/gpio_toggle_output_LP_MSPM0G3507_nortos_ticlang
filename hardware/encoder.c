@@ -71,14 +71,14 @@ void E3_B_INST_IRQHandler(void)
 }
 
 /* ================================================================
- *  encoder_task —— 1ms 定时器回调，每 20ms 保存一次脉冲数据
+ *  encoder_task —— 5ms 调度槽回调，每 20ms 保存一次脉冲数据
  * ================================================================ */
 
-void encoder_task(void)
+bool encoder_task(void)
 {
     s_encTick++;
     if (s_encTick < 4) {    /* 5ms × 4 = 20ms */
-        return;     /* 未到 20ms */
+        return false;     /* 未到 20ms */
     }
     s_encTick = 0;
 
@@ -88,6 +88,8 @@ void encoder_task(void)
 
     gEncMotor3.lastPulses = gEncMotor3.pulseCount;
     gEncMotor3.pulseCount = 0;
+
+    return true;
 }
 
 /* ================================================================

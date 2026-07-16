@@ -1,6 +1,7 @@
 # FIXED
 
-gpio_toggle_output.o: ../gpio_toggle_output.c \
+hardware/speed_control.o: ../hardware/speed_control.c \
+ ../hardware/speed_control.h ../hardware/clock.h ../hardware/motor.h \
  ti_msp_dl_config.h \
  C:/ti/mspm0_sdk_2_09_00_01/source/ti/devices/msp/msp.h \
  C:/ti/mspm0_sdk_2_09_00_01/source/ti/devices/DeviceFamily.h \
@@ -83,23 +84,10 @@ gpio_toggle_output.o: ../gpio_toggle_output.c \
  C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/dl_vref.h \
  C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/dl_wwdt.h \
  C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/m0p/dl_interrupt.h \
- C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/m0p/dl_systick.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/oled_hardware_i2c.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/clock.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/motor.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/encoder.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/key.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/speed_control.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/vofa.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/imu660rb.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/Fusion.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionAhrs.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionConvention.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionMath.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionAxes.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionCalibration.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionCompass.h \
- C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionOffset.h
+ C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/m0p/dl_systick.h
+../hardware/speed_control.h:
+../hardware/clock.h:
+../hardware/motor.h:
 ti_msp_dl_config.h:
 C:/ti/mspm0_sdk_2_09_00_01/source/ti/devices/msp/msp.h:
 C:/ti/mspm0_sdk_2_09_00_01/source/ti/devices/DeviceFamily.h:
@@ -183,19 +171,3 @@ C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/dl_vref.h:
 C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/dl_wwdt.h:
 C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/m0p/dl_interrupt.h:
 C:/ti/mspm0_sdk_2_09_00_01/source/ti/driverlib/m0p/dl_systick.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/oled_hardware_i2c.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/clock.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/motor.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/encoder.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/key.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/speed_control.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/vofa.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/imu660rb.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/Fusion.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionAhrs.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionConvention.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionMath.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionAxes.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionCalibration.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionCompass.h:
-C:/Users/CbkCbk/workspace_ccstheia/gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang/hardware/IMU660RB/Fusion/FusionOffset.h:

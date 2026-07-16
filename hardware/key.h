@@ -19,8 +19,10 @@ typedef enum {
 void Key_Init(void);
 void Key_Update1ms(void);
 bool Key_IsPressed(Key_Id key);
-bool Key_WasPressed(Key_Id key);
+/* 获取未滤波和完成 20ms 消抖后的四按键状态位图。 */
+uint8_t Key_GetRawPressedMask(void);
 uint8_t Key_GetPressedMask(void);
-uint8_t Key_GetPressedEventMask(void);
+/* 获取某个按键稳定按下的持续时间；松开后返回 0。 */
+uint16_t Key_GetPressedTimeMs(Key_Id key);
 
 #endif /* __KEY_H */

@@ -11,6 +11,7 @@
 #define __ENCODER_H
 
 #include "ti_msp_dl_config.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 /* ---- 单路编码器配置 ---- */
@@ -22,7 +23,7 @@ typedef struct {
     uint32_t            captureCh;    /* CC 索引 */
 
     volatile int32_t    pulseCount;   /* 20ms 内累计脉冲数（带符号） */
-    int32_t             lastPulses;   /* 上一次 20ms 的脉冲数 */
+    volatile int32_t    lastPulses;   /* 上一次 20ms 的脉冲数 */
 } Encoder_Cfg;
 
 /* ---- 编码器实例 ---- */
@@ -35,13 +36,13 @@ extern Encoder_Cfg gEncMotor3;
 void Encoder_Start(void);
 
 /*
- * 由 1ms 定时器 TIMER_0 中断调用
- * 内部每 20ms 保存 pulseCount → lastPulses，然后清零 pulseCount
+ * 由 TIMER_0 的 5ms 调度槽调用。
+ * 每调用 4 次（20ms）保存脉冲值并返回 true，其余时间返回 false。
  */
-void encoder_task(void);
+bool encoder_task(void);
 
 /* 获取最近一次 20ms 的脉冲数 */
-static inline int32_t Encoder_GetPulses(Encoder_Cfg *enc)
+static inline int32_t Encoder_GetPulses(const Encoder_Cfg *enc)
 {
     return enc->lastPulses;
 }
