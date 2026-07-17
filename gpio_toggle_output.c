@@ -180,8 +180,14 @@ int main(void)
         /* 在线参数命令在主循环解析，不在串口中断中执行浮点运算。 */
         if (VOFA_ReadCommand(vofaCommand, sizeof(vofaCommand))) {
             if (strcmp(vofaCommand, "dump") == 0) {
-                /* 回放上一次脱机测试保存的 20ms 速度波形。 */
+                /* 回放最后一次有效脱机测试的 20ms 速度波形。 */
                 RoadTest_DumpToVofa();
+            } else if (strcmp(vofaCommand, "dumpall") == 0) {
+                /* 快速导出本批次已经完成的全部测试，不按 20ms 延时回放。 */
+                RoadTest_DumpAllToVofa();
+            } else if (RoadTest_ProcessCommand(
+                           vofaCommand, vofaReply, sizeof(vofaReply))) {
+                VOFA_SendMessage(vofaReply);
             } else {
                 (void)SpeedControl_ProcessCommand(
                     vofaCommand, vofaReply, sizeof(vofaReply));
