@@ -22,9 +22,13 @@ typedef struct {
     int32_t leftTarget;
     int32_t leftActual;
     int32_t leftOutput;
+    int32_t leftFollowerOutput;
+    int32_t leftFollowerTrimPermille;
     int32_t rightTarget;
     int32_t rightActual;
     int32_t rightOutput;
+    int32_t rightFollowerOutput;
+    int32_t rightFollowerTrimPermille;
     bool running;
     SpeedControl_Mode mode;
 } SpeedControl_Status;

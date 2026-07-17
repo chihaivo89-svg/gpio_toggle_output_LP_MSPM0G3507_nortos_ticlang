@@ -16,6 +16,9 @@
 #define SPEED_RUN_TIMEOUT_MS          (5000UL)
 #define SPEED_TEST_TIMEOUT_MS         (2000UL)
 #define SPEED_MAX_TEST_DUTY           (300)
+#define SPEED_TRIM_SCALE_BASE          (1000)
+#define SPEED_DEFAULT_FOLLOWER_TRIM    (75)
+#define SPEED_MAX_FOLLOWER_TRIM        (100)
 
 typedef struct {
     volatile float kp;
@@ -34,6 +37,10 @@ static volatile int32_t s_leftActual;
 static volatile int32_t s_rightActual;
 static volatile int32_t s_leftOutput;
 static volatile int32_t s_rightOutput;
+static volatile int32_t s_leftFollowerOutput;
+static volatile int32_t s_rightFollowerOutput;
+static volatile int32_t s_leftFollowerTrimPermille;
+static volatile int32_t s_rightFollowerTrimPermille;
 static volatile int32_t s_outputLimit;
 static volatile bool s_running;
 static volatile bool s_openLoopTest;
@@ -51,6 +58,35 @@ static float SpeedPid_Clamp(float value, float minimum, float maximum)
         return minimum;
     }
     return value;
+}
+
+/*
+ * M4/M2 没有独立编码器，只在双侧前进闭环时允许做静态补偿。
+ * trim 单位为千分比：+25 表示 PWM 乘以 1.025，-25 表示乘以 0.975。
+ */
+static int32_t SpeedControl_ApplyFollowerTrim(
+    int32_t output,
+    int32_t trimPermille,
+    int32_t outputLimit)
+{
+    int32_t scaled;
+    int32_t numerator = output * (SPEED_TRIM_SCALE_BASE + trimPermille);
+
+    if (numerator >= 0) {
+        scaled = (numerator + (SPEED_TRIM_SCALE_BASE / 2)) /
+                 SPEED_TRIM_SCALE_BASE;
+    } else {
+        scaled = (numerator - (SPEED_TRIM_SCALE_BASE / 2)) /
+                 SPEED_TRIM_SCALE_BASE;
+    }
+
+    if (scaled > outputLimit) {
+        return outputLimit;
+    }
+    if (scaled < -outputLimit) {
+        return -outputLimit;
+    }
+    return scaled;
 }
 
 static void SpeedPid_Reset(SpeedPid *pid)
@@ -113,6 +149,8 @@ static void SpeedControl_StopOutputs(bool resetPid)
     s_openLoopTest = false;
     s_leftOutput = 0;
     s_rightOutput = 0;
+    s_leftFollowerOutput = 0;
+    s_rightFollowerOutput = 0;
 
     Motor_Stop(MOTOR1);
     Motor_Stop(MOTOR2);
@@ -220,6 +258,14 @@ void SpeedControl_Init(void)
     s_rightTarget = 0;
     s_leftActual = 0;
     s_rightActual = 0;
+    s_leftFollowerOutput = 0;
+    s_rightFollowerOutput = 0;
+    /*
+     * 道路标定后的正式默认值：降低左前 M4 7.5%，提高右前 M2 7.5%。
+     * 串口 trim=N 命令仍可在本次上电期间临时覆盖该默认值。
+     */
+    s_leftFollowerTrimPermille = -SPEED_DEFAULT_FOLLOWER_TRIM;
+    s_rightFollowerTrimPermille = SPEED_DEFAULT_FOLLOWER_TRIM;
     s_outputLimit = SPEED_DEFAULT_OUTPUT_LIMIT;
     s_mode = SPEED_CONTROL_LEFT;
     s_running = false;
@@ -251,6 +297,8 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     if (s_openLoopTest) {
         s_leftOutput = (s_mode == SPEED_CONTROL_LEFT) ? s_testDuty : 0;
         s_rightOutput = (s_mode == SPEED_CONTROL_RIGHT) ? s_testDuty : 0;
+        s_leftFollowerOutput = s_leftOutput;
+        s_rightFollowerOutput = s_rightOutput;
 
         if (s_mode == SPEED_CONTROL_LEFT) {
             Motor_SetSpeed(MOTOR3, s_leftOutput);
@@ -270,10 +318,17 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     if (s_mode == SPEED_CONTROL_LEFT || s_mode == SPEED_CONTROL_BOTH) {
         s_leftOutput = SpeedPid_Update(
             &s_leftPid, s_leftTarget, leftActual, s_outputLimit);
+        s_leftFollowerOutput = s_leftOutput;
+        if (s_mode == SPEED_CONTROL_BOTH &&
+            s_leftTarget > 0 && s_rightTarget > 0) {
+            s_leftFollowerOutput = SpeedControl_ApplyFollowerTrim(
+                s_leftOutput, s_leftFollowerTrimPermille, s_outputLimit);
+        }
         Motor_SetSpeed(MOTOR3, s_leftOutput);
-        Motor_SetSpeed(MOTOR4, s_leftOutput);
+        Motor_SetSpeed(MOTOR4, s_leftFollowerOutput);
     } else {
         s_leftOutput = 0;
+        s_leftFollowerOutput = 0;
         SpeedPid_Reset(&s_leftPid);
         Motor_Stop(MOTOR3);
         Motor_Stop(MOTOR4);
@@ -283,10 +338,17 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     if (s_mode == SPEED_CONTROL_RIGHT || s_mode == SPEED_CONTROL_BOTH) {
         s_rightOutput = SpeedPid_Update(
             &s_rightPid, s_rightTarget, rightActual, s_outputLimit);
+        s_rightFollowerOutput = s_rightOutput;
+        if (s_mode == SPEED_CONTROL_BOTH &&
+            s_leftTarget > 0 && s_rightTarget > 0) {
+            s_rightFollowerOutput = SpeedControl_ApplyFollowerTrim(
+                s_rightOutput, s_rightFollowerTrimPermille, s_outputLimit);
+        }
         Motor_SetSpeed(MOTOR1, s_rightOutput);
-        Motor_SetSpeed(MOTOR2, s_rightOutput);
+        Motor_SetSpeed(MOTOR2, s_rightFollowerOutput);
     } else {
         s_rightOutput = 0;
+        s_rightFollowerOutput = 0;
         SpeedPid_Reset(&s_rightPid);
         Motor_Stop(MOTOR1);
         Motor_Stop(MOTOR2);
@@ -302,9 +364,13 @@ void SpeedControl_GetStatus(SpeedControl_Status *status)
     status->leftTarget = s_openLoopTest ? 0 : s_leftTarget;
     status->leftActual = s_leftActual;
     status->leftOutput = s_leftOutput;
+    status->leftFollowerOutput = s_leftFollowerOutput;
+    status->leftFollowerTrimPermille = s_leftFollowerTrimPermille;
     status->rightTarget = s_openLoopTest ? 0 : s_rightTarget;
     status->rightActual = s_rightActual;
     status->rightOutput = s_rightOutput;
+    status->rightFollowerOutput = s_rightFollowerOutput;
+    status->rightFollowerTrimPermille = s_rightFollowerTrimPermille;
     status->running = s_running;
     status->mode = s_mode;
 }
@@ -375,7 +441,8 @@ bool SpeedControl_ProcessCommand(
         (void)snprintf(reply, replySize,
             "msg:run=%u type=%s side=%c lt=%ld rt=%ld "
             "lkp=%.3f lki=%.3f lkd=%.3f "
-            "rkp=%.3f rki=%.3f rkd=%.3f limit=%ld\r\n",
+            "rkp=%.3f rki=%.3f rkd=%.3f limit=%ld "
+            "m4trim=%ld m2trim=%ld m4out=%ld m2out=%ld\r\n",
             s_running ? 1U : 0U,
             s_openLoopTest ? "test" : "pid",
             SpeedControl_ModeCharacter(),
@@ -387,14 +454,65 @@ bool SpeedControl_ProcessCommand(
             (double)s_rightPid.kp,
             (double)s_rightPid.ki,
             (double)s_rightPid.kd,
-            (long)s_outputLimit);
+            (long)s_outputLimit,
+            (long)s_leftFollowerTrimPermille,
+            (long)s_rightFollowerTrimPermille,
+            (long)s_leftFollowerOutput,
+            (long)s_rightFollowerOutput);
+        return true;
+    }
+
+    if (strcmp(command, "trimstatus") == 0) {
+        (void)snprintf(reply, replySize,
+            "msg:trim forward-both-only m4trim=%ld scale=%ld/1000 out=%ld "
+            "m2trim=%ld scale=%ld/1000 out=%ld\r\n",
+            (long)s_leftFollowerTrimPermille,
+            (long)(SPEED_TRIM_SCALE_BASE + s_leftFollowerTrimPermille),
+            (long)s_leftFollowerOutput,
+            (long)s_rightFollowerTrimPermille,
+            (long)(SPEED_TRIM_SCALE_BASE + s_rightFollowerTrimPermille),
+            (long)s_rightFollowerOutput);
         return true;
     }
 
     if (strcmp(command, "help") == 0) {
         (void)snprintf(reply, replySize,
             "msg:side=l/r/b target=N kp=N ki=N kd=N "
-            "limit=N test=N run stop status dump\r\n");
+            "limit=N trim=N m2trim=N m4trim=N trimstatus "
+            "test=N run stop status dump\r\n");
+        return true;
+    }
+
+    if (SpeedControl_ParseLong(command, "trim", &longValue) ||
+        SpeedControl_ParseLong(command, "m2trim", &longValue) ||
+        SpeedControl_ParseLong(command, "m4trim", &longValue)) {
+        if (s_running) {
+            (void)snprintf(reply, replySize,
+                "msg:ERR stop before changing trim\r\n");
+            return false;
+        }
+        if (longValue < -SPEED_MAX_FOLLOWER_TRIM ||
+            longValue > SPEED_MAX_FOLLOWER_TRIM) {
+            (void)snprintf(reply, replySize,
+                "msg:ERR trim range -%d..%d per-mille\r\n",
+                SPEED_MAX_FOLLOWER_TRIM, SPEED_MAX_FOLLOWER_TRIM);
+            return false;
+        }
+
+        if (strncmp(command, "m2trim=", 7U) == 0) {
+            s_rightFollowerTrimPermille = (int32_t)longValue;
+        } else if (strncmp(command, "m4trim=", 7U) == 0) {
+            s_leftFollowerTrimPermille = (int32_t)longValue;
+        } else {
+            /* 正值用于修正向右偏：左前 M4 减速，右前 M2 加速。 */
+            s_leftFollowerTrimPermille = -(int32_t)longValue;
+            s_rightFollowerTrimPermille = (int32_t)longValue;
+        }
+
+        (void)snprintf(reply, replySize,
+            "msg:OK m4trim=%ld m2trim=%ld forward-both-only\r\n",
+            (long)s_leftFollowerTrimPermille,
+            (long)s_rightFollowerTrimPermille);
         return true;
     }
 

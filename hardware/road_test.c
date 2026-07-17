@@ -24,6 +24,8 @@ typedef struct {
 typedef struct {
     int16_t target;
     int16_t outputLimit;
+    int16_t m4TrimPermille;
+    int16_t m2TrimPermille;
     uint16_t sampleCount;
     int32_t leftActualSum;
     int32_t rightActualSum;
@@ -160,6 +162,8 @@ static void RoadTest_ResetRunLog(uint8_t runIndex)
     log = &s_runLogs[runIndex];
     log->target = RoadTest_TargetForRun(runIndex);
     log->outputLimit = RoadTest_LimitForRun(runIndex);
+    log->m4TrimPermille = 0;
+    log->m2TrimPermille = 0;
     log->sampleCount = 0U;
     log->leftActualSum = 0;
     log->rightActualSum = 0;
@@ -210,6 +214,7 @@ static void RoadTest_BeginRun(void)
     char command[24];
     bool configured;
     volatile RoadTest_RunLog *log = RoadTest_GetActiveLog();
+    SpeedControl_Status speedStatus;
 
     if (log == NULL) {
         s_testAborted = true;
@@ -230,6 +235,12 @@ static void RoadTest_BeginRun(void)
         configured = RoadTest_RunCommand(command);
     }
     if (configured) {
+        /* 把本次开始时的静态补偿写入日志，导出后可准确对应道路偏移。 */
+        SpeedControl_GetStatus(&speedStatus);
+        log->m4TrimPermille = RoadTest_ToInt16(
+            speedStatus.leftFollowerTrimPermille);
+        log->m2TrimPermille = RoadTest_ToInt16(
+            speedStatus.rightFollowerTrimPermille);
         configured = RoadTest_RunCommand("run");
     }
 
@@ -560,9 +571,12 @@ void RoadTest_DumpToVofa(void)
     count = log->sampleCount;
 
     (void)snprintf(frame, sizeof(frame),
-        "msg:dump begin index=%u target=%d samples=%u period=20ms\r\n",
+        "msg:dump begin index=%u target=%d m4trim=%d m2trim=%d "
+        "samples=%u period=20ms\r\n",
         (unsigned int)(runIndex + 1U),
         (int)log->target,
+        (int)log->m4TrimPermille,
+        (int)log->m2TrimPermille,
         (unsigned int)count);
     VOFA_SendMessage(frame);
 
@@ -610,7 +624,7 @@ void RoadTest_DumpAllToVofa(void)
     }
 
     (void)snprintf(frame, sizeof(frame),
-        "msg:dumpall begin version=1 runs=%u expected=%u period=20ms\r\n",
+        "msg:dumpall begin version=2 runs=%u expected=%u period=20ms\r\n",
         (unsigned int)runCount,
         (unsigned int)ROAD_TEST_BATCH_RUN_COUNT);
     VOFA_SendMessage(frame);
@@ -622,10 +636,13 @@ void RoadTest_DumpAllToVofa(void)
         uint32_t checksum = 2166136261UL;
 
         (void)snprintf(frame, sizeof(frame),
-            "msg:run begin index=%u target=%d limit=%d samples=%u\r\n",
+            "msg:run begin index=%u target=%d limit=%d m4trim=%d "
+            "m2trim=%d samples=%u\r\n",
             (unsigned int)(runIndex + 1U),
             (int)log->target,
             (int)log->outputLimit,
+            (int)log->m4TrimPermille,
+            (int)log->m2TrimPermille,
             (unsigned int)count);
         VOFA_SendMessage(frame);
 
@@ -750,14 +767,16 @@ bool RoadTest_ProcessCommand(
         log = RoadTest_GetActiveLog();
         (void)snprintf(reply, replySize,
             "msg:road state=%s saved=%u/%u active=%u "
-            "target=%d run=%u/3 samples=%u\r\n",
+            "target=%d run=%u/3 samples=%u m4trim=%d m2trim=%d\r\n",
             RoadTest_StateName(),
             (unsigned int)s_completedRunCount,
             (unsigned int)ROAD_TEST_BATCH_RUN_COUNT,
             (unsigned int)(s_activeRunIndex + 1U),
             (log != NULL) ? (int)log->target : 0,
             (unsigned int)RoadTest_RunNumberWithinTarget(s_activeRunIndex),
-            (log != NULL) ? (unsigned int)log->sampleCount : 0U);
+            (log != NULL) ? (unsigned int)log->sampleCount : 0U,
+            (log != NULL) ? (int)log->m4TrimPermille : 0,
+            (log != NULL) ? (int)log->m2TrimPermille : 0);
         return true;
     }
 
