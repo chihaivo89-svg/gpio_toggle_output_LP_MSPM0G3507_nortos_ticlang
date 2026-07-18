@@ -637,13 +637,14 @@ void RoadTest_DumpAllToVofa(void)
 
         (void)snprintf(frame, sizeof(frame),
             "msg:run begin index=%u target=%d limit=%d m4trim=%d "
-            "m2trim=%d samples=%u\r\n",
+            "m2trim=%d samples=%u algo=%s\r\n",
             (unsigned int)(runIndex + 1U),
             (int)log->target,
             (int)log->outputLimit,
             (int)log->m4TrimPermille,
             (int)log->m2TrimPermille,
-            (unsigned int)count);
+            (unsigned int)count,
+            "v2");
         VOFA_SendMessage(frame);
 
         for (sampleIndex = 0U; sampleIndex < count; sampleIndex++) {

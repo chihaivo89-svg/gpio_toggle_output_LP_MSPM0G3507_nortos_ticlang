@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 #define VOFA_SEND_PERIOD_MS    (40UL)
-#define VOFA_FRAME_SIZE        (96U)
+#define VOFA_FRAME_SIZE        (160U)
 
 static unsigned long s_lastSendMs;
 static volatile char s_rxCommand[VOFA_COMMAND_MAX_LENGTH];
@@ -124,16 +124,20 @@ void VOFA_Update(const VOFA_SpeedData *data)
 
     s_lastSendMs = nowMs;
 
-    /* 顺序固定为 I0~I5，与 VOFA 三张速度 PID 波形图一一对应。 */
+    /* I0~I5 保持兼容，I6~I9 追加 V2 目标和显示用平滑速度。 */
     (void)snprintf(
         frame,
         sizeof(frame),
-        "pid:%ld,%ld,%ld,%ld,%ld,%ld\r\n",
+        "pid:%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld\r\n",
         (long)data->leftTarget,
         (long)data->leftActual,
         (long)data->leftOutput,
         (long)data->rightTarget,
         (long)data->rightActual,
-        (long)data->rightOutput);
+        (long)data->rightOutput,
+        (long)data->leftControlTarget,
+        (long)data->leftFilteredActual,
+        (long)data->rightControlTarget,
+        (long)data->rightFilteredActual);
     VOFA_SendMessage(frame);
 }

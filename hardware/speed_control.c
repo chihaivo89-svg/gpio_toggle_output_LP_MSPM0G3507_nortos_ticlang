@@ -23,6 +23,16 @@
 #define SPEED_TRIM_SCALE_BASE          (1000)
 #define SPEED_DEFAULT_FOLLOWER_TRIM    (75)
 #define SPEED_MAX_FOLLOWER_TRIM        (100)
+#define SPEED_V2_TARGET_STEP           (1)
+#define SPEED_V2_FF_LINEAR_TARGET      (8)
+#define SPEED_V2_FF_MAX_TARGET         (20)
+#define SPEED_V2_FF_OFFSET             (198.762f)
+#define SPEED_V2_FF_GAIN               (11.340f)
+#define SPEED_V2_FF_MAX_PERMILLE       (750)
+#define SPEED_V2_ANTI_WINDUP_GAIN      (0.25f)
+#define SPEED_V2_INTEGRAL_UNLOAD_SCALE (3.0f)
+#define SPEED_V2_UNLOAD_MIN_ERROR      (2)
+#define SPEED_FILTER_SAMPLE_COUNT      (4U)
 
 typedef struct {
     volatile float kp;
@@ -32,13 +42,28 @@ typedef struct {
     int32_t previousError;
 } SpeedPid;
 
+typedef struct {
+    int32_t samples[SPEED_FILTER_SAMPLE_COUNT];
+    int32_t sum;
+    uint8_t index;
+    uint8_t count;
+} SpeedActualFilter;
+
 static SpeedPid s_leftPid;
 static SpeedPid s_rightPid;
+static SpeedActualFilter s_leftActualFilter;
+static SpeedActualFilter s_rightActualFilter;
 
 static volatile int32_t s_leftTarget;
 static volatile int32_t s_rightTarget;
+static volatile int32_t s_leftControlTarget;
+static volatile int32_t s_rightControlTarget;
 static volatile int32_t s_leftActual;
 static volatile int32_t s_rightActual;
+static volatile int32_t s_leftFilteredActual;
+static volatile int32_t s_rightFilteredActual;
+static volatile int32_t s_leftFeedforward;
+static volatile int32_t s_rightFeedforward;
 static volatile int32_t s_leftOutput;
 static volatile int32_t s_rightOutput;
 static volatile int32_t s_leftFollowerOutput;
@@ -62,6 +87,107 @@ static float SpeedPid_Clamp(float value, float minimum, float maximum)
         return minimum;
     }
     return value;
+}
+
+static int32_t SpeedControl_RoundDivide(int32_t numerator, int32_t denominator)
+{
+    if (denominator <= 0) {
+        return 0;
+    }
+    if (numerator >= 0) {
+        return (numerator + (denominator / 2)) / denominator;
+    }
+    return (numerator - (denominator / 2)) / denominator;
+}
+
+static void SpeedActualFilter_Reset(SpeedActualFilter *filter)
+{
+    uint8_t index;
+
+    filter->sum = 0;
+    filter->index = 0U;
+    filter->count = 0U;
+    for (index = 0U; index < SPEED_FILTER_SAMPLE_COUNT; index++) {
+        filter->samples[index] = 0;
+    }
+}
+
+/* 四点移动平均仅用于 VOFA 观察，不参与 PID 反馈。 */
+static int32_t SpeedActualFilter_Update(
+    SpeedActualFilter *filter,
+    int32_t actual)
+{
+    filter->sum -= filter->samples[filter->index];
+    filter->samples[filter->index] = actual;
+    filter->sum += actual;
+
+    filter->index++;
+    if (filter->index >= SPEED_FILTER_SAMPLE_COUNT) {
+        filter->index = 0U;
+    }
+    if (filter->count < SPEED_FILTER_SAMPLE_COUNT) {
+        filter->count++;
+    }
+
+    return SpeedControl_RoundDivide(filter->sum, filter->count);
+}
+
+static int32_t SpeedControl_MoveToward(
+    int32_t current,
+    int32_t target,
+    int32_t step)
+{
+    if (current < target) {
+        int32_t next = current + step;
+        return (next > target) ? target : next;
+    }
+    if (current > target) {
+        int32_t next = current - step;
+        return (next < target) ? target : next;
+    }
+    return current;
+}
+
+/*
+ * 前馈由正向 Target 8~20 的地面稳态数据拟合得到。低于 Target 8
+ * 时从零线性过渡，高于 Target 20 不再外推；倒车暂时保持 PI 控制。
+ * 前馈还会限制在总输出上限的 75%，为 PID 修正保留余量。
+ */
+static int32_t SpeedControl_CalculateFeedforward(
+    int32_t target,
+    int32_t outputLimit)
+{
+    float absoluteTarget;
+    float magnitude;
+    float minimumLinearOutput;
+    float maximumFeedforward;
+    float feedforward;
+
+    if (target <= 0 || outputLimit <= 0) {
+        return 0;
+    }
+
+    absoluteTarget = (target > SPEED_V2_FF_MAX_TARGET) ?
+        (float)SPEED_V2_FF_MAX_TARGET : (float)target;
+    minimumLinearOutput = SPEED_V2_FF_OFFSET +
+                          SPEED_V2_FF_GAIN *
+                          (float)SPEED_V2_FF_LINEAR_TARGET;
+    if (absoluteTarget < (float)SPEED_V2_FF_LINEAR_TARGET) {
+        magnitude = minimumLinearOutput * absoluteTarget /
+                    (float)SPEED_V2_FF_LINEAR_TARGET;
+    } else {
+        magnitude = SPEED_V2_FF_OFFSET +
+                    SPEED_V2_FF_GAIN * absoluteTarget;
+    }
+
+    maximumFeedforward = (float)outputLimit *
+                         (float)SPEED_V2_FF_MAX_PERMILLE /
+                         (float)SPEED_TRIM_SCALE_BASE;
+    magnitude = SpeedPid_Clamp(magnitude, 0.0f, maximumFeedforward);
+    feedforward = magnitude;
+
+    return (int32_t)(feedforward +
+        ((feedforward >= 0.0f) ? 0.5f : -0.5f));
 }
 
 /*
@@ -107,11 +233,15 @@ static int32_t SpeedPid_Update(
     SpeedPid *pid,
     int32_t target,
     int32_t actual,
+    int32_t feedforward,
     int32_t outputLimit)
 {
     int32_t error;
+    float integralStep;
     float integralCandidate;
     float output;
+    float limitedOutput;
+    float feedforwardOutput = (float)feedforward;
     float limit = (float)outputLimit;
 
     if (target == 0) {
@@ -120,17 +250,36 @@ static int32_t SpeedPid_Update(
     }
 
     error = target - actual;
-    integralCandidate = pid->integral + pid->ki * (float)error;
+    integralStep = pid->ki * (float)error;
+
+    /*
+     * V2 在误差已经反向且幅度足够大时加快卸载已有积分，
+     * 减少重负载突然释放后的速度超调；小幅稳态抖动仍按原 Ki 处理。
+     */
+    if ((pid->integral > 0.0f && error <= -SPEED_V2_UNLOAD_MIN_ERROR) ||
+        (pid->integral < 0.0f && error >= SPEED_V2_UNLOAD_MIN_ERROR)) {
+        integralStep *= SPEED_V2_INTEGRAL_UNLOAD_SCALE;
+    }
+
+    integralCandidate = pid->integral + integralStep;
     integralCandidate = SpeedPid_Clamp(integralCandidate, -limit, limit);
 
-    output = pid->kp * (float)error + integralCandidate +
+    output = feedforwardOutput +
+             pid->kp * (float)error + integralCandidate +
              pid->kd * (float)(error - pid->previousError);
 
-    /* 输出已经饱和且误差仍在推动饱和时，本周期不继续累加积分。 */
-    if ((output > limit && error > 0) ||
-        (output < -limit && error < 0)) {
-        integralCandidate = pid->integral;
-        output = pid->kp * (float)error + integralCandidate +
+    if (output > limit || output < -limit) {
+        /*
+         * 用回算法把积分拉回当前执行器可实现的输出，
+         * 避免 PWM 饱和期间留下过大的积分。
+         */
+        limitedOutput = SpeedPid_Clamp(output, -limit, limit);
+        integralCandidate += SPEED_V2_ANTI_WINDUP_GAIN *
+                             (limitedOutput - output);
+        integralCandidate = SpeedPid_Clamp(
+            integralCandidate, -limit, limit);
+        output = feedforwardOutput +
+                 pid->kp * (float)error + integralCandidate +
                  pid->kd * (float)(error - pid->previousError);
     }
 
@@ -151,6 +300,10 @@ static int32_t SpeedPid_Update(
 static void SpeedControl_StopOutputs(bool resetPid)
 {
     s_openLoopTest = false;
+    s_leftControlTarget = 0;
+    s_rightControlTarget = 0;
+    s_leftFeedforward = 0;
+    s_rightFeedforward = 0;
     s_leftOutput = 0;
     s_rightOutput = 0;
     s_leftFollowerOutput = 0;
@@ -250,7 +403,7 @@ static char SpeedControl_ModeCharacter(void)
 
 void SpeedControl_Init(void)
 {
-    /* No-load baseline tuning at 8 encoder pulses per 20 ms. */
+    /* 已通过 Target 8~20 架空及地面测试的正式 PI 参数。 */
     s_leftPid.kp = 30.0f;
     s_leftPid.ki = 1.5f;
     s_leftPid.kd = 0.0f;
@@ -260,8 +413,14 @@ void SpeedControl_Init(void)
 
     s_leftTarget = 0;
     s_rightTarget = 0;
+    s_leftControlTarget = 0;
+    s_rightControlTarget = 0;
     s_leftActual = 0;
     s_rightActual = 0;
+    s_leftFilteredActual = 0;
+    s_rightFilteredActual = 0;
+    s_leftFeedforward = 0;
+    s_rightFeedforward = 0;
     s_leftFollowerOutput = 0;
     s_rightFollowerOutput = 0;
     /*
@@ -278,6 +437,8 @@ void SpeedControl_Init(void)
     s_runDurationMs = SPEED_RUN_TIMEOUT_MS;
     s_testDuty = 0;
 
+    SpeedActualFilter_Reset(&s_leftActualFilter);
+    SpeedActualFilter_Reset(&s_rightActualFilter);
     SpeedControl_StopOutputs(true);
 }
 
@@ -285,6 +446,10 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
 {
     s_leftActual = leftActual;
     s_rightActual = rightActual;
+    s_leftFilteredActual = SpeedActualFilter_Update(
+        &s_leftActualFilter, leftActual);
+    s_rightFilteredActual = SpeedActualFilter_Update(
+        &s_rightActualFilter, rightActual);
 
     if (!s_running) {
         SpeedControl_StopOutputs(true);
@@ -299,6 +464,10 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
 
     /* 固定 PWM 测试按左右侧驱动，用于确认同侧两台电机的方向。 */
     if (s_openLoopTest) {
+        s_leftControlTarget = 0;
+        s_rightControlTarget = 0;
+        s_leftFeedforward = 0;
+        s_rightFeedforward = 0;
         s_leftOutput = (s_mode == SPEED_CONTROL_LEFT) ? s_testDuty : 0;
         s_rightOutput = (s_mode == SPEED_CONTROL_RIGHT) ? s_testDuty : 0;
         s_leftFollowerOutput = s_leftOutput;
@@ -318,13 +487,37 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
         return;
     }
 
+    if (s_mode == SPEED_CONTROL_LEFT || s_mode == SPEED_CONTROL_BOTH) {
+        s_leftControlTarget = SpeedControl_MoveToward(
+            s_leftControlTarget, s_leftTarget, SPEED_V2_TARGET_STEP);
+        s_leftFeedforward = SpeedControl_CalculateFeedforward(
+            s_leftControlTarget, s_outputLimit);
+    } else {
+        s_leftControlTarget = 0;
+        s_leftFeedforward = 0;
+    }
+
+    if (s_mode == SPEED_CONTROL_RIGHT || s_mode == SPEED_CONTROL_BOTH) {
+        s_rightControlTarget = SpeedControl_MoveToward(
+            s_rightControlTarget, s_rightTarget, SPEED_V2_TARGET_STEP);
+        s_rightFeedforward = SpeedControl_CalculateFeedforward(
+            s_rightControlTarget, s_outputLimit);
+    } else {
+        s_rightControlTarget = 0;
+        s_rightFeedforward = 0;
+    }
+
     /* M3 提供左侧反馈，M4 一比一跟随左侧 PID 输出。 */
     if (s_mode == SPEED_CONTROL_LEFT || s_mode == SPEED_CONTROL_BOTH) {
         s_leftOutput = SpeedPid_Update(
-            &s_leftPid, s_leftTarget, leftActual, s_outputLimit);
+            &s_leftPid,
+            s_leftControlTarget,
+            leftActual,
+            s_leftFeedforward,
+            s_outputLimit);
         s_leftFollowerOutput = s_leftOutput;
         if (s_mode == SPEED_CONTROL_BOTH &&
-            s_leftTarget > 0 && s_rightTarget > 0) {
+            s_leftControlTarget > 0 && s_rightControlTarget > 0) {
             s_leftFollowerOutput = SpeedControl_ApplyFollowerTrim(
                 s_leftOutput, s_leftFollowerTrimPermille, s_outputLimit);
         }
@@ -341,10 +534,14 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     /* M1 提供右侧反馈，M2 一比一跟随右侧 PID 输出。 */
     if (s_mode == SPEED_CONTROL_RIGHT || s_mode == SPEED_CONTROL_BOTH) {
         s_rightOutput = SpeedPid_Update(
-            &s_rightPid, s_rightTarget, rightActual, s_outputLimit);
+            &s_rightPid,
+            s_rightControlTarget,
+            rightActual,
+            s_rightFeedforward,
+            s_outputLimit);
         s_rightFollowerOutput = s_rightOutput;
         if (s_mode == SPEED_CONTROL_BOTH &&
-            s_leftTarget > 0 && s_rightTarget > 0) {
+            s_leftControlTarget > 0 && s_rightControlTarget > 0) {
             s_rightFollowerOutput = SpeedControl_ApplyFollowerTrim(
                 s_rightOutput, s_rightFollowerTrimPermille, s_outputLimit);
         }
@@ -366,12 +563,20 @@ void SpeedControl_GetStatus(SpeedControl_Status *status)
     }
 
     status->leftTarget = s_openLoopTest ? 0 : s_leftTarget;
+    status->leftControlTarget =
+        s_openLoopTest ? 0 : s_leftControlTarget;
     status->leftActual = s_leftActual;
+    status->leftFilteredActual = s_leftFilteredActual;
+    status->leftFeedforward = s_leftFeedforward;
     status->leftOutput = s_leftOutput;
     status->leftFollowerOutput = s_leftFollowerOutput;
     status->leftFollowerTrimPermille = s_leftFollowerTrimPermille;
     status->rightTarget = s_openLoopTest ? 0 : s_rightTarget;
+    status->rightControlTarget =
+        s_openLoopTest ? 0 : s_rightControlTarget;
     status->rightActual = s_rightActual;
+    status->rightFilteredActual = s_rightFilteredActual;
+    status->rightFeedforward = s_rightFeedforward;
     status->rightOutput = s_rightOutput;
     status->rightFollowerOutput = s_rightFollowerOutput;
     status->rightFollowerTrimPermille = s_rightFollowerTrimPermille;
@@ -422,8 +627,9 @@ bool SpeedControl_ProcessCommand(
         s_runDurationMs = SPEED_RUN_TIMEOUT_MS;
         s_running = true;
         (void)snprintf(reply, replySize,
-            "msg:OK running side=%c timeout=5s\r\n",
-            SpeedControl_ModeCharacter());
+            "msg:OK running side=%c algo=%s timeout=5s\r\n",
+            SpeedControl_ModeCharacter(),
+            "v2");
         return true;
     }
 
@@ -441,17 +647,46 @@ bool SpeedControl_ProcessCommand(
         return true;
     }
 
+    if (strcmp(command, "algo=v2") == 0) {
+        if (s_running) {
+            (void)snprintf(reply, replySize,
+                "msg:ERR stop before confirming algo\r\n");
+            return false;
+        }
+
+        SpeedControl_StopOutputs(true);
+        (void)snprintf(reply, replySize,
+            "msg:OK algo=v2 official ramp=on ff=on stopped\r\n");
+        return true;
+    }
+
+    if (strcmp(command, "algostatus") == 0) {
+        (void)snprintf(reply, replySize,
+            "msg:algo=v2 official ramp_step=%d/20ms ff=%s "
+            "antiwindup=backcalc unload=3x filter=%u-sample-display\r\n",
+            SPEED_V2_TARGET_STEP,
+            "forward-fit-8..20",
+            (unsigned int)SPEED_FILTER_SAMPLE_COUNT);
+        return true;
+    }
+
     if (strcmp(command, "status") == 0) {
         (void)snprintf(reply, replySize,
-            "msg:run=%u type=%s side=%c lt=%ld rt=%ld "
+            "msg:run=%u type=%s algo=%s side=%c "
+            "lt=%ld lct=%ld rt=%ld rct=%ld lff=%ld rff=%ld "
             "lkp=%.3f lki=%.3f lkd=%.3f "
             "rkp=%.3f rki=%.3f rkd=%.3f limit=%ld "
             "m4trim=%ld m2trim=%ld m4out=%ld m2out=%ld\r\n",
             s_running ? 1U : 0U,
             s_openLoopTest ? "test" : "pid",
+            "v2",
             SpeedControl_ModeCharacter(),
             (long)s_leftTarget,
+            (long)s_leftControlTarget,
             (long)s_rightTarget,
+            (long)s_rightControlTarget,
+            (long)s_leftFeedforward,
+            (long)s_rightFeedforward,
             (double)s_leftPid.kp,
             (double)s_leftPid.ki,
             (double)s_leftPid.kd,
@@ -483,7 +718,7 @@ bool SpeedControl_ProcessCommand(
         (void)snprintf(reply, replySize,
             "msg:side=l/r/b target=N kp=N ki=N kd=N "
             "limit=N trim=N m2trim=N m4trim=N trimstatus "
-            "test=N run stop status dump\r\n");
+            "algo=v2 algostatus test=N run stop status dump\r\n");
         return true;
     }
 

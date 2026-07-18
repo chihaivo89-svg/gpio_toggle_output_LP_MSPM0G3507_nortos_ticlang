@@ -120,10 +120,14 @@ void UART_0_INST_IRQHandler(void)
 
 int main(void)
 {
-    VOFA_SpeedData vofaSpeedData = {0};
-    SpeedControl_Status speedStatus;
-    char vofaCommand[VOFA_COMMAND_MAX_LENGTH];
-    char vofaReply[192];
+    /*
+     * 主循环对象长期存在，使用静态存储避免占满链接器预留的 512 字节栈。
+     * 这只改变存储位置，不改变 VOFA、OLED 或速度控制的执行逻辑。
+     */
+    static VOFA_SpeedData vofaSpeedData;
+    static SpeedControl_Status speedStatus;
+    static char vofaCommand[VOFA_COMMAND_MAX_LENGTH];
+    static char vofaReply[320];
 
     SYSCFG_DL_init();
 
@@ -175,6 +179,14 @@ int main(void)
         vofaSpeedData.rightTarget = speedStatus.rightTarget;
         vofaSpeedData.rightActual = speedStatus.rightActual;
         vofaSpeedData.rightOutput = speedStatus.rightOutput;
+        vofaSpeedData.leftControlTarget =
+            speedStatus.leftControlTarget;
+        vofaSpeedData.leftFilteredActual =
+            speedStatus.leftFilteredActual;
+        vofaSpeedData.rightControlTarget =
+            speedStatus.rightControlTarget;
+        vofaSpeedData.rightFilteredActual =
+            speedStatus.rightFilteredActual;
         VOFA_Update(&vofaSpeedData);
 
         /* 在线参数命令在主循环解析，不在串口中断中执行浮点运算。 */
