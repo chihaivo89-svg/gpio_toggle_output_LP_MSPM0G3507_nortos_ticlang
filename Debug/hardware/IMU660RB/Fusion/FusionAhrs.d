@@ -1,10 +1,8 @@
-# FIXED
-
-hardware/IMU660RB/Fusion/FusionAhrs.o: \
- ../hardware/IMU660RB/Fusion/FusionAhrs.c \
- ../hardware/IMU660RB/Fusion/FusionAhrs.h \
- ../hardware/IMU660RB/Fusion/FusionConvention.h \
- ../hardware/IMU660RB/Fusion/FusionMath.h
+hardware/IMU660RB/Fusion/FusionAhrs.o:   ../hardware/IMU660RB/Fusion/FusionAhrs.c   ../hardware/IMU660RB/Fusion/FusionAhrs.h   ../hardware/IMU660RB/Fusion/FusionConvention.h   ../hardware/IMU660RB/Fusion/FusionMath.h
+../hardware/IMU660RB/Fusion/FusionAhrs.c:
+../hardware/IMU660RB/Fusion/FusionAhrs.h:
+../hardware/IMU660RB/Fusion/FusionConvention.h:
+../hardware/IMU660RB/Fusion/FusionMath.h:
 ../hardware/IMU660RB/Fusion/FusionAhrs.h:
 ../hardware/IMU660RB/Fusion/FusionConvention.h:
 ../hardware/IMU660RB/Fusion/FusionMath.h:

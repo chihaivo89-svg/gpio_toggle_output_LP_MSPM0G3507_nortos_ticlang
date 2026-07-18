@@ -1,9 +1,17 @@
 /*
- *  speed_control.h  —— 左右两侧速度闭环控制
+ * speed_control.h - 四轮小车左右两侧速度闭环
  *
- *  左侧使用 M3 编码器反馈，同一 PID 输出驱动 M3/M4；
- *  右侧使用 M1 编码器反馈，同一 PID 输出驱动 M1/M2。
- *  M2/M4 没有独立速度反馈，作为同侧开环跟随电机。
+ * 左侧：M3 编码器反馈，M3 闭环驱动，M4 同侧跟随。
+ * 右侧：M1 编码器反馈，M1 闭环驱动，M2 同侧跟随。
+ *
+ * 参数调整入口：speed_control_config.h
+ *
+ * 调用顺序：
+ *   1. SpeedControl_Init()
+ *   2. SpeedControl_SetTargets()
+ *   3. SpeedControl_Start()
+ *   4. 每获得一组 20ms 编码器数据时调用 SpeedControl_Update20ms()
+ *   5. SpeedControl_Stop() 立即停止四个电机
  */
 
 #ifndef __SPEED_CONTROL_H
@@ -12,50 +20,23 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum {
-    SPEED_CONTROL_LEFT = 0,
-    SPEED_CONTROL_RIGHT,
-    SPEED_CONTROL_BOTH
-} SpeedControl_Mode;
-
-typedef struct {
-    /* target 是外部命令值，controlTarget 是斜坡处理后的 PID 目标。 */
-    int32_t leftTarget;
-    int32_t leftControlTarget;
-    int32_t leftActual;
-    int32_t leftFilteredActual;
-    int32_t leftFeedforward;
-    int32_t leftOutput;
-    int32_t leftFollowerOutput;
-    int32_t leftFollowerTrimPermille;
-    int32_t rightTarget;
-    int32_t rightControlTarget;
-    int32_t rightActual;
-    int32_t rightFilteredActual;
-    int32_t rightFeedforward;
-    int32_t rightOutput;
-    int32_t rightFollowerOutput;
-    int32_t rightFollowerTrimPermille;
-    bool running;
-    SpeedControl_Mode mode;
-} SpeedControl_Status;
-
-/* 初始化后所有电机保持停止，必须收到 run 命令才会启动闭环。 */
+/* 初始化正式速度环参数。初始化完成后四个电机保持停止。 */
 void SpeedControl_Init(void);
+
+/*
+ * 设置左右侧目标速度，单位为每 20ms 的编码器脉冲数。
+ * 目标范围为 -200~200；参数越界时保持原目标并返回 false。
+ * 运行期间允许更新目标，内部斜坡会平滑跟随新目标。
+ */
+bool SpeedControl_SetTargets(int32_t leftTarget, int32_t rightTarget);
+
+/* 至少一侧目标非零时启动，启动成功返回 true。 */
+bool SpeedControl_Start(void);
+
+/* 立即停止四个电机并清除 PID 历史状态。 */
+void SpeedControl_Stop(void);
 
 /* 每获得一组新的 20ms 编码器数据时调用一次。 */
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual);
-
-/* 获取供 OLED/VOFA 使用的状态快照。 */
-void SpeedControl_GetStatus(SpeedControl_Status *status);
-
-/*
- * 处理 VOFA 文本命令，并把执行结果写入 reply。
- * 返回 true 表示命令有效，false 表示格式或参数错误。
- */
-bool SpeedControl_ProcessCommand(
-    const char *command,
-    char *reply,
-    uint32_t replySize);
 
 #endif /* __SPEED_CONTROL_H */

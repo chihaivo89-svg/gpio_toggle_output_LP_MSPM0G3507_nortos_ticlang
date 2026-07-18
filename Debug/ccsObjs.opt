@@ -13,7 +13,6 @@
 "./hardware/motor.o"
 "./hardware/oled_hardware_i2c.o"
 "./hardware/speed_control.o"
-"./hardware/vofa.o"
 -l"./device_linker.cmd"
 -ldevice.cmd.genlibs
 -llibc.a

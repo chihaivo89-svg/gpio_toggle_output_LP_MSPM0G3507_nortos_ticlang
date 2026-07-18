@@ -1,8 +1,6 @@
-# FIXED
-
-hardware/IMU660RB/Fusion/FusionOffset.o: \
- ../hardware/IMU660RB/Fusion/FusionOffset.c \
- ../hardware/IMU660RB/Fusion/FusionOffset.h \
- ../hardware/IMU660RB/Fusion/FusionMath.h
+hardware/IMU660RB/Fusion/FusionOffset.o:   ../hardware/IMU660RB/Fusion/FusionOffset.c   ../hardware/IMU660RB/Fusion/FusionOffset.h   ../hardware/IMU660RB/Fusion/FusionMath.h
+../hardware/IMU660RB/Fusion/FusionOffset.c:
+../hardware/IMU660RB/Fusion/FusionOffset.h:
+../hardware/IMU660RB/Fusion/FusionMath.h:
 ../hardware/IMU660RB/Fusion/FusionOffset.h:
 ../hardware/IMU660RB/Fusion/FusionMath.h:
