@@ -71,13 +71,13 @@ static int16_t RoadTest_ToInt16(int32_t value)
 static int16_t RoadTest_TargetForRun(uint8_t runIndex)
 {
     return (runIndex < ROAD_TEST_RUNS_PER_TARGET) ?
-        ROAD_TEST_TARGET_8_PULSES : ROAD_TEST_TARGET_10_PULSES;
+        ROAD_TEST_TARGET_18_PULSES : ROAD_TEST_TARGET_20_PULSES;
 }
 
 static int16_t RoadTest_LimitForRun(uint8_t runIndex)
 {
     return (runIndex < ROAD_TEST_RUNS_PER_TARGET) ?
-        ROAD_TEST_TARGET_8_LIMIT : ROAD_TEST_TARGET_10_LIMIT;
+        ROAD_TEST_TARGET_18_LIMIT : ROAD_TEST_TARGET_20_LIMIT;
 }
 
 static uint8_t RoadTest_RunNumberWithinTarget(uint8_t runIndex)
@@ -759,7 +759,8 @@ bool RoadTest_ProcessCommand(
         s_key1WasPressed = Key_IsPressed(KEY_ID_1);
         OLED_Clear();
         (void)snprintf(reply, replySize,
-            "msg:OK road batch reset; next target=8 run=1/3\r\n");
+            "msg:OK road batch reset; next target=%d run=1/3\r\n",
+            (int)RoadTest_TargetForRun(0U));
         return true;
     }
 

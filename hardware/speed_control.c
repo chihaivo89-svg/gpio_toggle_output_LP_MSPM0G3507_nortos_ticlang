@@ -8,9 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* 首次调试只允许 30% 输出，每次运行 5 秒后自动停机。 */
-#define SPEED_DEFAULT_OUTPUT_LIMIT    (300)
+/*
+ * 普通速度闭环默认允许 80% 输出，每次运行 5 秒后自动停机；
+ * 固定 PWM 开环测试仍单独限制为 30%。
+ * 默认值直接引用最大闭环限制，避免两处配置再次不一致。
+ */
 #define SPEED_MAX_OUTPUT_LIMIT        (800)
+#define SPEED_DEFAULT_OUTPUT_LIMIT    SPEED_MAX_OUTPUT_LIMIT
 #define SPEED_MAX_ABS_TARGET          (200)
 #define SPEED_MAX_GAIN                (100.0f)
 #define SPEED_RUN_TIMEOUT_MS          (5000UL)

@@ -7,16 +7,16 @@
 #include <stdint.h>
 
 /*
- * 标准化脱机测试批次：目标 8 和目标 10 各测试 3 次。
+ * 标准化脱机测试批次：目标 18 和目标 20 各测试 3 次。
  * 按下 KEY1 后倒计时，四轮向前闭环运行 5 秒。
  * 速度单位仍是编码器每 20ms 的脉冲数，PWM 满量程为 1000。
  */
 #define ROAD_TEST_RUNS_PER_TARGET    (3U)
 #define ROAD_TEST_BATCH_RUN_COUNT    (6U)
-#define ROAD_TEST_TARGET_8_PULSES    (8)
-#define ROAD_TEST_TARGET_10_PULSES   (10)
-#define ROAD_TEST_TARGET_8_LIMIT     (500)
-#define ROAD_TEST_TARGET_10_LIMIT    (600)
+#define ROAD_TEST_TARGET_18_PULSES   (18)
+#define ROAD_TEST_TARGET_20_PULSES   (20)
+#define ROAD_TEST_TARGET_18_LIMIT    (800)
+#define ROAD_TEST_TARGET_20_LIMIT    (800)
 #define ROAD_TEST_COUNTDOWN_MS       (2000UL)
 #define ROAD_TEST_DURATION_MS        (5000UL)
 #define ROAD_TEST_SAMPLE_PERIOD_MS   (20UL)
