@@ -24,6 +24,7 @@ ORDERED_OBJS += \
 "./hardware/key.o" \
 "./hardware/motor.o" \
 "./hardware/oled_hardware_i2c.o" \
+"./hardware/speed_diag.o" \
 "./hardware/speed_control.o" \
 $(GEN_CMDS__FLAG) \
 -Wl,-ldevice.cmd.genlibs \

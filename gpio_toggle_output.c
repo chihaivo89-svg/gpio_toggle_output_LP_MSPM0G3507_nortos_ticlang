@@ -14,6 +14,8 @@
 #include "key.h"
 #include "oled_hardware_i2c.h"
 #include "speed_control.h"
+#include "speed_control_config.h"
+#include "speed_diag.h"
 #include "IMU660RB/imu660rb.h"
 
 /* ==================== 主程序状态 ==================== */
@@ -25,6 +27,10 @@ volatile bool gDataReceived = false;
 static char oled_buf[24];
 static uint8_t sched_tick = 0;
 static bool speed_sample_ready = false;
+
+static bool s_lastKey1Pressed = false;
+static bool s_key1StartPending = false;
+static unsigned long s_key1StartRequestMs;
 
 /* ==================== 前台任务 ==================== */
 
@@ -45,9 +51,63 @@ static void App_ProcessTrackUart(void)
     }
 }
 
+/*
+ * KEY1 一键启停状态机：
+ *   停止时按下：只登记启动请求，等待 2 秒后启动，不阻塞主循环。
+ *   等待时再按：取消启动请求，电机保持停止。
+ *   运行时按下：直接清零四路 PWM 和 PID 状态，立即停止，不做减速斜坡。
+ */
+static void App_HandleKeyToggle(void)
+{
+    bool key1Pressed = Key_IsPressed(KEY_ID_1);
+
+    /* 串口诊断期间取消待启动请求，并同步按键边沿，避免诊断结束后误启动。 */
+    if (SpeedDiag_IsActive()) {
+        s_key1StartPending = false;
+        s_lastKey1Pressed = key1Pressed;
+        return;
+    }
+
+    /* 消抖后的按下沿：松开 → 按下只触发一次。 */
+    if (key1Pressed && !s_lastKey1Pressed) {
+        if (SpeedControl_IsRunning()) {
+            s_key1StartPending = false;
+            SpeedControl_Stop();
+        } else if (s_key1StartPending) {
+            s_key1StartPending = false;
+        } else {
+            s_key1StartRequestMs = tick_ms;
+            s_key1StartPending = true;
+        }
+    }
+
+    /*
+     * 无阻塞延时：主循环在等待期间仍持续刷新按键、OLED 和串口。
+     * unsigned 减法可正确处理 tick_ms 自然回绕。
+     */
+    if (s_key1StartPending &&
+        (tick_ms - s_key1StartRequestMs) >= SPEED_KEY1_START_DELAY_MS) {
+        s_key1StartPending = false;
+        if (SpeedControl_SetTargets(
+                SPEED_DEFAULT_TARGET, SPEED_DEFAULT_TARGET)) {
+            (void)SpeedControl_Start();
+        }
+    }
+
+    s_lastKey1Pressed = key1Pressed;
+}
+
 /* OLED 只负责状态显示，不参与速度环计算。 */
 static void App_UpdateOled(void)
 {
+    const char *key1State;
+
+    if (s_key1StartPending) {
+        key1State = "WAIT";
+    } else {
+        key1State = SpeedControl_IsRunning() ? "RUN " : "STOP";
+    }
+
     OLED_ShowString(0, 0, (uint8_t *)"track:", 8);
     OLED_ShowString(0, 1, (uint8_t *)"spd1:", 8);
     OLED_ShowString(0, 2, (uint8_t *)"spd2:", 8);
@@ -66,8 +126,8 @@ static void App_UpdateOled(void)
 
     sprintf(
         oled_buf,
-        "K1:%04u K2:%04u",
-        Key_GetDisplayTimeMs(KEY_ID_1),
+        "K1:%s K2:%04u",
+        key1State,
         Key_GetDisplayTimeMs(KEY_ID_2));
     OLED_ShowString(0, 6, (uint8_t *)oled_buf, 8);
     sprintf(
@@ -106,10 +166,14 @@ void TIMER_0_INST_IRQHandler(void)
 
                 case 2:
                     if (speed_sample_ready) {
+                        int32_t leftActual =
+                            Encoder_GetPulses(&gEncMotor3);
+                        int32_t rightActual =
+                            Encoder_GetPulses(&gEncMotor1);
+
                         speed_sample_ready = false;
-                        SpeedControl_Update20ms(
-                            Encoder_GetPulses(&gEncMotor3),
-                            Encoder_GetPulses(&gEncMotor1));
+                        SpeedControl_Update20ms(leftActual, rightActual);
+                        SpeedDiag_Record20ms(leftActual, rightActual);
                     }
                     break;
 
@@ -160,6 +224,7 @@ int main(void)
 
     NVIC_EnableIRQ(UART_0_INST_INT_IRQN);
     NVIC_EnableIRQ(TIMER_0_INST_INT_IRQN);
+    SpeedDiag_Init();
 
     Key_Init();
     Encoder_Start();
@@ -168,6 +233,8 @@ int main(void)
 
     while (1) {
         App_ProcessTrackUart();
+        SpeedDiag_Process();
+        App_HandleKeyToggle();
         App_UpdateOled();
     }
 }

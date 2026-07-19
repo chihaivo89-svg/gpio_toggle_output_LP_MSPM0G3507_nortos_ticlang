@@ -20,6 +20,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* 单次 20ms 更新后的速度环诊断快照。 */
+typedef struct {
+    int32_t leftActual;
+    int32_t rightActual;
+    int32_t leftOutput;
+    int32_t rightOutput;
+} SpeedControlTelemetry;
+
 /* 初始化正式速度环参数。初始化完成后四个电机保持停止。 */
 void SpeedControl_Init(void);
 
@@ -36,7 +44,13 @@ bool SpeedControl_Start(void);
 /* 立即停止四个电机并清除 PID 历史状态。 */
 void SpeedControl_Stop(void);
 
+/* 返回速度环当前是否处于运行状态。 */
+bool SpeedControl_IsRunning(void);
+
 /* 每获得一组新的 20ms 编码器数据时调用一次。 */
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual);
+
+/* 获取最近一次更新使用的速度与闭环 PWM，不改变控制状态。 */
+void SpeedControl_GetTelemetry(SpeedControlTelemetry *telemetry);
 
 #endif /* __SPEED_CONTROL_H */

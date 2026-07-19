@@ -18,6 +18,7 @@ typedef struct {
 /* 只保留跨 20ms 控制周期必须保存的状态。 */
 static SpeedPid s_leftPid;
 static SpeedPid s_rightPid;
+static SpeedControlTelemetry s_telemetry;
 
 static volatile int32_t s_leftTarget;
 static volatile int32_t s_rightTarget;
@@ -205,6 +206,10 @@ static void SpeedControl_StopOutputs(void)
 
     SpeedPid_Reset(&s_leftPid);
     SpeedPid_Reset(&s_rightPid);
+    s_telemetry.leftActual = 0;
+    s_telemetry.rightActual = 0;
+    s_telemetry.leftOutput = 0;
+    s_telemetry.rightOutput = 0;
 
     Motor_Stop(MOTOR1);
     Motor_Stop(MOTOR2);
@@ -255,6 +260,11 @@ void SpeedControl_Stop(void)
     SpeedControl_StopOutputs();
 }
 
+bool SpeedControl_IsRunning(void)
+{
+    return s_running;
+}
+
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
 {
     int32_t leftFeedforward;
@@ -290,6 +300,11 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     rightOutput = SpeedPid_Update(
         &s_rightPid, s_rightControlTarget, rightActual, rightFeedforward);
 
+    s_telemetry.leftActual = leftActual;
+    s_telemetry.rightActual = rightActual;
+    s_telemetry.leftOutput = leftOutput;
+    s_telemetry.rightOutput = rightOutput;
+
     /*
      * M4、M2 没有独立编码器，跟随同侧闭环输出。
      * 道路标定的静态补偿只在双侧都向前时生效。
@@ -307,4 +322,11 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     Motor_SetSpeed(MOTOR4, leftFollowerOutput);
     Motor_SetSpeed(MOTOR1, rightOutput);
     Motor_SetSpeed(MOTOR2, rightFollowerOutput);
+}
+
+void SpeedControl_GetTelemetry(SpeedControlTelemetry *telemetry)
+{
+    if (telemetry != 0) {
+        *telemetry = s_telemetry;
+    }
 }
