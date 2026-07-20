@@ -12,8 +12,8 @@ C_SRCS += \
 ../hardware/key.c \
 ../hardware/motor.c \
 ../hardware/oled_hardware_i2c.c \
-../hardware/speed_diag.c \
-../hardware/speed_control.c
+../hardware/speed_control.c \
+../hardware/speed_diag.c 
 
 C_DEPS += \
 ./hardware/clock.d \
@@ -22,8 +22,8 @@ C_DEPS += \
 ./hardware/key.d \
 ./hardware/motor.d \
 ./hardware/oled_hardware_i2c.d \
-./hardware/speed_diag.d \
-./hardware/speed_control.d
+./hardware/speed_control.d \
+./hardware/speed_diag.d 
 
 OBJS += \
 ./hardware/clock.o \
@@ -32,8 +32,8 @@ OBJS += \
 ./hardware/key.o \
 ./hardware/motor.o \
 ./hardware/oled_hardware_i2c.o \
-./hardware/speed_diag.o \
-./hardware/speed_control.o
+./hardware/speed_control.o \
+./hardware/speed_diag.o 
 
 OBJS__QUOTED += \
 "hardware\clock.o" \
@@ -42,8 +42,8 @@ OBJS__QUOTED += \
 "hardware\key.o" \
 "hardware\motor.o" \
 "hardware\oled_hardware_i2c.o" \
-"hardware\speed_diag.o" \
-"hardware\speed_control.o"
+"hardware\speed_control.o" \
+"hardware\speed_diag.o" 
 
 C_DEPS__QUOTED += \
 "hardware\clock.d" \
@@ -52,8 +52,8 @@ C_DEPS__QUOTED += \
 "hardware\key.d" \
 "hardware\motor.d" \
 "hardware\oled_hardware_i2c.d" \
-"hardware\speed_diag.d" \
-"hardware\speed_control.d"
+"hardware\speed_control.d" \
+"hardware\speed_diag.d" 
 
 C_SRCS__QUOTED += \
 "../hardware/clock.c" \
@@ -62,7 +62,7 @@ C_SRCS__QUOTED += \
 "../hardware/key.c" \
 "../hardware/motor.c" \
 "../hardware/oled_hardware_i2c.c" \
-"../hardware/speed_diag.c" \
-"../hardware/speed_control.c"
+"../hardware/speed_control.c" \
+"../hardware/speed_diag.c" 
 
 

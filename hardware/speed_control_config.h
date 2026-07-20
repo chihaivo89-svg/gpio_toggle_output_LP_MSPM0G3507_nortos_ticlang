@@ -49,12 +49,12 @@
 
 /*
  * 无编码器前轮的静态补偿：
- *   M4 左前轮降低 7.5%
- *   M2 右前轮提高 7.5%
+ *   M4 左前轮降低 4.5%
+ *   M2 右前轮提高 4.5%
  * 只在左右两侧均向前运行时生效。
  */
-#define SPEED_M4_TRIM_PERMILLE             (-75)
-#define SPEED_M2_TRIM_PERMILLE             (75)
+#define SPEED_M4_TRIM_PERMILLE             (-45)
+#define SPEED_M2_TRIM_PERMILLE             (45)
 
 /* ==================== 安全边界 ==================== */
 
