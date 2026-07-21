@@ -13,10 +13,8 @@ C_SRCS += \
 ../hardware/motor.c \
 ../hardware/oled_hardware_i2c.c \
 ../hardware/speed_control.c \
-../hardware/speed_diag.c \
 ../hardware/vehicle_yaw.c \
-../hardware/heading_control.c \
-../hardware/heading_tune.c
+../hardware/heading_control.c
 
 C_DEPS += \
 ./hardware/clock.d \
@@ -26,10 +24,8 @@ C_DEPS += \
 ./hardware/motor.d \
 ./hardware/oled_hardware_i2c.d \
 ./hardware/speed_control.d \
-./hardware/speed_diag.d \
 ./hardware/vehicle_yaw.d \
-./hardware/heading_control.d \
-./hardware/heading_tune.d
+./hardware/heading_control.d
 
 OBJS += \
 ./hardware/clock.o \
@@ -39,10 +35,8 @@ OBJS += \
 ./hardware/motor.o \
 ./hardware/oled_hardware_i2c.o \
 ./hardware/speed_control.o \
-./hardware/speed_diag.o \
 ./hardware/vehicle_yaw.o \
-./hardware/heading_control.o \
-./hardware/heading_tune.o
+./hardware/heading_control.o
 
 OBJS__QUOTED += \
 "hardware\clock.o" \
@@ -52,10 +46,8 @@ OBJS__QUOTED += \
 "hardware\motor.o" \
 "hardware\oled_hardware_i2c.o" \
 "hardware\speed_control.o" \
-"hardware\speed_diag.o" \
 "hardware\vehicle_yaw.o" \
-"hardware\heading_control.o" \
-"hardware\heading_tune.o"
+"hardware\heading_control.o"
 
 C_DEPS__QUOTED += \
 "hardware\clock.d" \
@@ -65,10 +57,8 @@ C_DEPS__QUOTED += \
 "hardware\motor.d" \
 "hardware\oled_hardware_i2c.d" \
 "hardware\speed_control.d" \
-"hardware\speed_diag.d" \
 "hardware\vehicle_yaw.d" \
-"hardware\heading_control.d" \
-"hardware\heading_tune.d"
+"hardware\heading_control.d"
 
 C_SRCS__QUOTED += \
 "../hardware/clock.c" \
@@ -78,9 +68,7 @@ C_SRCS__QUOTED += \
 "../hardware/motor.c" \
 "../hardware/oled_hardware_i2c.c" \
 "../hardware/speed_control.c" \
-"../hardware/speed_diag.c" \
 "../hardware/vehicle_yaw.c" \
-"../hardware/heading_control.c" \
-"../hardware/heading_tune.c"
+"../hardware/heading_control.c"
 
 

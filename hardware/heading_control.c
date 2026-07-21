@@ -1,22 +1,30 @@
 #include "heading_control.h"
 
+#include <stdint.h>
+
 #include "heading_control_config.h"
 #include "speed_control.h"
 #include "vehicle_yaw.h"
 
-static HeadingControlTelemetry s_telemetry;
+static bool s_active;
+static float s_referenceDeg;
+static float s_headingDeg;
+static float s_errorDeg;
+static float s_yawRateDps;
 static float s_filteredErrorDeg;
-static uint8_t s_offsetHoldTicks;
+static float s_filteredYawRateDps;
+static float s_targetOffset;
+static uint8_t s_correctionZone;
 
 static float HeadingControl_Abs(float value)
 {
     return (value < 0.0f) ? -value : value;
 }
 
-static int32_t HeadingControl_ClampInt32(
-    int32_t value,
-    int32_t minimum,
-    int32_t maximum)
+static float HeadingControl_ClampFloat(
+    float value,
+    float minimum,
+    float maximum)
 {
     if (value > maximum) {
         return maximum;
@@ -27,80 +35,131 @@ static int32_t HeadingControl_ClampInt32(
     return value;
 }
 
-static int32_t HeadingControl_RoundToInt32(float value)
+static float HeadingControl_MoveToward(
+    float current,
+    float target,
+    float step)
 {
-    return (value >= 0.0f) ?
-        (int32_t)(value + 0.5f) : (int32_t)(value - 0.5f);
+    if (current < target) {
+        float next = current + step;
+        return (next > target) ? target : next;
+    }
+    if (current > target) {
+        float next = current - step;
+        return (next < target) ? target : next;
+    }
+    return current;
 }
 
 static void HeadingControl_UpdateObservation(void)
 {
-    s_telemetry.headingDeg = VehicleYaw_GetHeadingDeg();
-    s_telemetry.yawRateDps = VehicleYaw_GetRateDps();
-    s_telemetry.errorDeg = s_telemetry.headingDeg -
-                           s_telemetry.referenceDeg;
+    s_headingDeg = VehicleYaw_GetHeadingDeg();
+    s_yawRateDps = VehicleYaw_GetRateDps();
+    s_errorDeg = s_headingDeg - s_referenceDeg;
+}
+
+/*
+ * Hysteresis keeps small floor and IMU disturbances quiet.  The active zone
+ * limits are differential speed targets: +/-1, +/-2 or +/-3 pulses/20 ms.
+ */
+static void HeadingControl_UpdateZone(float absoluteError)
+{
+    float exitDeadband = HEADING_CONTROL_DEADBAND_DEG * 0.5f;
+
+    switch (s_correctionZone) {
+        case 0U:
+            if (absoluteError >= HEADING_CONTROL_STRONG_ERROR_DEG) {
+                s_correctionZone = 3U;
+            } else if (absoluteError >= HEADING_CONTROL_MEDIUM_ERROR_DEG) {
+                s_correctionZone = 2U;
+            } else if (absoluteError >= HEADING_CONTROL_DEADBAND_DEG) {
+                s_correctionZone = 1U;
+            }
+            break;
+
+        case 1U:
+            if (absoluteError >= HEADING_CONTROL_STRONG_ERROR_DEG) {
+                s_correctionZone = 3U;
+            } else if (absoluteError >= HEADING_CONTROL_MEDIUM_ERROR_DEG) {
+                s_correctionZone = 2U;
+            } else if (absoluteError <= exitDeadband) {
+                s_correctionZone = 0U;
+            }
+            break;
+
+        case 2U:
+            if (absoluteError >= HEADING_CONTROL_STRONG_ERROR_DEG) {
+                s_correctionZone = 3U;
+            } else if (absoluteError <=
+                       HEADING_CONTROL_MEDIUM_RELEASE_DEG) {
+                s_correctionZone = (absoluteError <= exitDeadband) ? 0U : 1U;
+            }
+            break;
+
+        default:
+            if (absoluteError <= HEADING_CONTROL_STRONG_RELEASE_DEG) {
+                if (absoluteError <= exitDeadband) {
+                    s_correctionZone = 0U;
+                } else if (absoluteError >=
+                           HEADING_CONTROL_MEDIUM_ERROR_DEG) {
+                    s_correctionZone = 2U;
+                } else {
+                    s_correctionZone = 1U;
+                }
+            }
+            break;
+    }
+}
+
+static void HeadingControl_ResetOutput(void)
+{
+    s_targetOffset = 0.0f;
+    s_correctionZone = 0U;
+    SpeedControl_SetDifferentialTargetOffsetFloat(0.0f);
 }
 
 void HeadingControl_Init(void)
 {
-    s_telemetry.active = false;
-    s_telemetry.referenceDeg = 0.0f;
-    s_telemetry.headingDeg = 0.0f;
-    s_telemetry.errorDeg = 0.0f;
-    s_telemetry.yawRateDps = 0.0f;
-    s_telemetry.targetOffset = 0;
-    s_telemetry.kp = HEADING_CONTROL_DEFAULT_KP;
-    s_telemetry.kd = HEADING_CONTROL_DEFAULT_KD;
-    s_telemetry.deadbandDeg = HEADING_CONTROL_DEFAULT_DEADBAND_DEG;
-    s_telemetry.maxTargetOffset =
-        HEADING_CONTROL_DEFAULT_MAX_TARGET_OFFSET;
+    s_active = false;
+    s_referenceDeg = 0.0f;
+    s_headingDeg = 0.0f;
+    s_errorDeg = 0.0f;
+    s_yawRateDps = 0.0f;
     s_filteredErrorDeg = 0.0f;
-    s_offsetHoldTicks = 0U;
-
-    SpeedControl_SetDifferentialTargetOffset(0);
+    s_filteredYawRateDps = 0.0f;
+    HeadingControl_ResetOutput();
 }
 
-bool HeadingControl_Start(void)
+bool HeadingControl_Start(float referenceDeg)
 {
     if (!VehicleYaw_IsCalibrated() || !SpeedControl_IsRunning()) {
         return false;
     }
 
+    s_referenceDeg = referenceDeg;
     HeadingControl_UpdateObservation();
-    s_telemetry.referenceDeg = s_telemetry.headingDeg;
-    s_telemetry.errorDeg = 0.0f;
-    s_telemetry.targetOffset = 0;
-    s_filteredErrorDeg = 0.0f;
-    s_offsetHoldTicks = 0U;
-    s_telemetry.active = true;
-    SpeedControl_SetDifferentialTargetOffset(0);
+    s_filteredErrorDeg = s_errorDeg;
+    s_filteredYawRateDps = s_yawRateDps;
+    s_active = true;
+    HeadingControl_ResetOutput();
     return true;
 }
 
 void HeadingControl_Stop(void)
 {
-    s_telemetry.active = false;
-    s_telemetry.targetOffset = 0;
+    s_active = false;
     s_filteredErrorDeg = 0.0f;
-    s_offsetHoldTicks = 0U;
-    SpeedControl_SetDifferentialTargetOffset(0);
-}
-
-bool HeadingControl_IsActive(void)
-{
-    return s_telemetry.active;
+    s_filteredYawRateDps = 0.0f;
+    HeadingControl_ResetOutput();
 }
 
 void HeadingControl_Update20ms(void)
 {
-    float proportionalError;
     float absoluteError;
-    float command;
-    int32_t roundedCommand;
+    float command = 0.0f;
+    float zoneLimit;
 
-    HeadingControl_UpdateObservation();
-
-    if (!s_telemetry.active) {
+    if (!s_active) {
         return;
     }
 
@@ -109,119 +168,34 @@ void HeadingControl_Update20ms(void)
         return;
     }
 
-    /*
-     * Keep the raw heading telemetry visible, but drive the integer target
-     * offset from a lightly filtered error.  This removes the rapid -1/0/+1
-     * chattering seen on road tests without adding visible steering lag.
-     */
+    HeadingControl_UpdateObservation();
     s_filteredErrorDeg +=
-        (s_telemetry.errorDeg - s_filteredErrorDeg) *
+        (s_errorDeg - s_filteredErrorDeg) *
         HEADING_CONTROL_ERROR_FILTER_ALPHA;
+    s_filteredYawRateDps +=
+        (s_yawRateDps - s_filteredYawRateDps) *
+        HEADING_CONTROL_YAW_RATE_FILTER_ALPHA;
 
-    proportionalError = s_filteredErrorDeg;
-    absoluteError = HeadingControl_Abs(proportionalError);
-    if (HeadingControl_Abs(proportionalError) <=
-        s_telemetry.deadbandDeg) {
-        proportionalError = 0.0f;
-    } else if (proportionalError > 0.0f) {
-        proportionalError -= s_telemetry.deadbandDeg;
-    } else {
-        proportionalError += s_telemetry.deadbandDeg;
+    absoluteError = HeadingControl_Abs(s_filteredErrorDeg);
+    HeadingControl_UpdateZone(absoluteError);
+
+    if (s_correctionZone != 0U) {
+        /* Direction was verified on the real vehicle: left is positive yaw. */
+        command = -(HEADING_CONTROL_KP * s_filteredErrorDeg +
+                    HEADING_CONTROL_KD * s_filteredYawRateDps);
     }
 
-    /*
-     * Positive heading error means the vehicle has turned left of the saved
-     * reference.  The tested vehicle wiring needs the opposite target offset
-     * so the chassis steers back toward the reference instead of running away.
-     */
-    command = s_telemetry.kp * proportionalError +
-              s_telemetry.kd * s_telemetry.yawRateDps;
-    command = -command;
-    roundedCommand = HeadingControl_RoundToInt32(command);
+    zoneLimit = (float)s_correctionZone;
+    if (zoneLimit > (float)HEADING_CONTROL_MAX_TARGET_OFFSET) {
+        zoneLimit = (float)HEADING_CONTROL_MAX_TARGET_OFFSET;
+    }
+    command = HeadingControl_ClampFloat(command, -zoneLimit, zoneLimit);
 
-    /*
-     * Target offset is an integer.  Do not immediately force every tiny
-     * post-deadband error to +/-1; that made the vehicle weave.  Keep a small
-     * nonzero correction briefly, release it only after the filtered error is
-     * clearly near zero, and let larger errors still reach +/-2 normally.
-     */
-    if (roundedCommand == 0 && command != 0.0f &&
-        s_telemetry.maxTargetOffset > 0 &&
-        absoluteError >= (s_telemetry.deadbandDeg +
-                          HEADING_CONTROL_OFFSET_RELEASE_DEG)) {
-        roundedCommand = (command > 0.0f) ? 1 : -1;
+    s_targetOffset = HeadingControl_MoveToward(
+        s_targetOffset, command, HEADING_CONTROL_OFFSET_SLEW_PER_TICK);
+    if (HeadingControl_Abs(s_targetOffset) < 0.01f) {
+        s_targetOffset = 0.0f;
     }
 
-    roundedCommand = HeadingControl_ClampInt32(
-        roundedCommand,
-        -s_telemetry.maxTargetOffset,
-        s_telemetry.maxTargetOffset);
-
-    if (roundedCommand != 0) {
-        s_telemetry.targetOffset = roundedCommand;
-        s_offsetHoldTicks = HEADING_CONTROL_OFFSET_HOLD_TICKS;
-    } else if (s_telemetry.targetOffset != 0 &&
-               absoluteError > HEADING_CONTROL_OFFSET_RELEASE_DEG &&
-               s_offsetHoldTicks > 0U) {
-        s_offsetHoldTicks--;
-    } else {
-        s_telemetry.targetOffset = 0;
-        s_offsetHoldTicks = 0U;
-    }
-
-    SpeedControl_SetDifferentialTargetOffset(s_telemetry.targetOffset);
-}
-
-bool HeadingControl_SetKp(float value)
-{
-    if (value < HEADING_CONTROL_KP_MIN || value > HEADING_CONTROL_KP_MAX) {
-        return false;
-    }
-
-    s_telemetry.kp = value;
-    return true;
-}
-
-bool HeadingControl_SetKd(float value)
-{
-    if (value < HEADING_CONTROL_KD_MIN || value > HEADING_CONTROL_KD_MAX) {
-        return false;
-    }
-
-    s_telemetry.kd = value;
-    return true;
-}
-
-bool HeadingControl_SetDeadbandDeg(float value)
-{
-    if (value < HEADING_CONTROL_DEADBAND_MIN_DEG ||
-        value > HEADING_CONTROL_DEADBAND_MAX_DEG) {
-        return false;
-    }
-
-    s_telemetry.deadbandDeg = value;
-    return true;
-}
-
-bool HeadingControl_SetMaxTargetOffset(int32_t value)
-{
-    if (value < 0 || value > HEADING_CONTROL_MAX_TARGET_OFFSET_LIMIT) {
-        return false;
-    }
-
-    s_telemetry.maxTargetOffset = value;
-    if (s_telemetry.targetOffset > value ||
-        s_telemetry.targetOffset < -value) {
-        s_telemetry.targetOffset = HeadingControl_ClampInt32(
-            s_telemetry.targetOffset, -value, value);
-        SpeedControl_SetDifferentialTargetOffset(s_telemetry.targetOffset);
-    }
-    return true;
-}
-
-void HeadingControl_GetTelemetry(HeadingControlTelemetry *telemetry)
-{
-    if (telemetry != 0) {
-        *telemetry = s_telemetry;
-    }
+    SpeedControl_SetDifferentialTargetOffsetFloat(s_targetOffset);
 }

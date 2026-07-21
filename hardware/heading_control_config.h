@@ -2,35 +2,30 @@
 #define HEADING_CONTROL_CONFIG_H
 
 /*
- * Temporary vehicle-heading outer-loop tuning defaults.
+ * 正式版车辆航向外环参数入口。
  *
  * The speed PI loop remains unchanged.  This controller only creates a small
- * differential target offset while a heading test is active.
+ * differential target offset while heading hold is active.
  * Positive heading error means the vehicle has turned left of the saved
  * reference; the controller applies the opposite wheel-speed offset.
  */
 
-#define HEADING_CONTROL_DEFAULT_KP                 (0.40f)
-#define HEADING_CONTROL_DEFAULT_KD                 (0.00f)
-#define HEADING_CONTROL_DEFAULT_DEADBAND_DEG       (0.8f)
-#define HEADING_CONTROL_DEFAULT_MAX_TARGET_OFFSET  (1)
+#define HEADING_CONTROL_KP                         (0.45f)
+#define HEADING_CONTROL_KD                         (0.06f)
+#define HEADING_CONTROL_DEADBAND_DEG               (0.5f)
+#define HEADING_CONTROL_MAX_TARGET_OFFSET          (3)
 
 /*
- * The heading loop ultimately sends an integer target offset to the speed
- * loop.  Without filtering/hysteresis, small IMU and floor disturbances can
- * make that integer jump between -1, 0 and +1 many times per second.
+ * Error and rate filtering keep the fractional target offset quiet without
+ * delaying the 20 ms speed loop.  Zone hysteresis gives small errors gentle
+ * authority and reserves +/-3 for a large disturbance.
  */
 #define HEADING_CONTROL_ERROR_FILTER_ALPHA         (0.35f)
-#define HEADING_CONTROL_OFFSET_RELEASE_DEG         (0.25f)
-#define HEADING_CONTROL_OFFSET_HOLD_TICKS          (3)
-
-/* UART tuning guardrails.  They intentionally keep this test outer loop mild. */
-#define HEADING_CONTROL_KP_MIN                     (0.0f)
-#define HEADING_CONTROL_KP_MAX                     (1.00f)
-#define HEADING_CONTROL_KD_MIN                     (0.0f)
-#define HEADING_CONTROL_KD_MAX                     (0.20f)
-#define HEADING_CONTROL_DEADBAND_MIN_DEG           (0.0f)
-#define HEADING_CONTROL_DEADBAND_MAX_DEG           (5.0f)
-#define HEADING_CONTROL_MAX_TARGET_OFFSET_LIMIT    (1)
+#define HEADING_CONTROL_YAW_RATE_FILTER_ALPHA      (0.20f)
+#define HEADING_CONTROL_MEDIUM_ERROR_DEG           (1.5f)
+#define HEADING_CONTROL_MEDIUM_RELEASE_DEG         (1.2f)
+#define HEADING_CONTROL_STRONG_ERROR_DEG           (5.0f)
+#define HEADING_CONTROL_STRONG_RELEASE_DEG         (4.0f)
+#define HEADING_CONTROL_OFFSET_SLEW_PER_TICK       (0.50f)
 
 #endif /* HEADING_CONTROL_CONFIG_H */

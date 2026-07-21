@@ -12,19 +12,18 @@
 
 typedef struct {
     float integral;
-    int32_t previousError;
+    float previousError;
 } SpeedPid;
 
 /* 只保留跨 20ms 控制周期必须保存的状态。 */
 static SpeedPid s_leftPid;
 static SpeedPid s_rightPid;
-static SpeedControlTelemetry s_telemetry;
 
 static volatile int32_t s_leftTarget;
 static volatile int32_t s_rightTarget;
-static volatile int32_t s_leftControlTarget;
-static volatile int32_t s_rightControlTarget;
-static volatile int32_t s_differentialTargetOffset;
+static volatile float s_leftControlTarget;
+static volatile float s_rightControlTarget;
+static volatile float s_differentialTargetOffset;
 static volatile bool s_running;
 
 /* ==================== 基础工具函数 ==================== */
@@ -43,50 +42,50 @@ static float SpeedControl_ClampFloat(
     return value;
 }
 
-static int32_t SpeedControl_MoveToward(
-    int32_t current,
-    int32_t target,
-    int32_t step)
+static float SpeedControl_MoveToward(
+    float current,
+    float target,
+    float step)
 {
     if (current < target) {
-        int32_t next = current + step;
+        float next = current + step;
         return (next > target) ? target : next;
     }
     if (current > target) {
-        int32_t next = current - step;
+        float next = current - step;
         return (next < target) ? target : next;
     }
     return current;
 }
 
-static int32_t SpeedControl_ClampTarget(int32_t target)
+static float SpeedControl_ClampTarget(float target)
 {
-    if (target > SPEED_MAX_ABS_TARGET) {
-        return SPEED_MAX_ABS_TARGET;
+    if (target > (float)SPEED_MAX_ABS_TARGET) {
+        return (float)SPEED_MAX_ABS_TARGET;
     }
-    if (target < -SPEED_MAX_ABS_TARGET) {
-        return -SPEED_MAX_ABS_TARGET;
+    if (target < -(float)SPEED_MAX_ABS_TARGET) {
+        return -(float)SPEED_MAX_ABS_TARGET;
     }
     return target;
 }
 
 /*
- * Base targets belong to the normal speed-control API.  The optional heading
+ * Base targets belong to the normal speed-control API.  The heading
  * outer loop never changes them; it only creates this per-sample effective
- * target pair for a forward straight-line test.
+ * target pair while the vehicle is driving forward.
  */
 static void SpeedControl_GetEffectiveTargets(
-    int32_t *leftTarget,
-    int32_t *rightTarget)
+    float *leftTarget,
+    float *rightTarget)
 {
     if (s_leftTarget > 0 && s_rightTarget > 0) {
         *leftTarget = SpeedControl_ClampTarget(
-            s_leftTarget + s_differentialTargetOffset);
+            (float)s_leftTarget + s_differentialTargetOffset);
         *rightTarget = SpeedControl_ClampTarget(
-            s_rightTarget - s_differentialTargetOffset);
+            (float)s_rightTarget - s_differentialTargetOffset);
     } else {
-        *leftTarget = s_leftTarget;
-        *rightTarget = s_rightTarget;
+        *leftTarget = (float)s_leftTarget;
+        *rightTarget = (float)s_rightTarget;
     }
 }
 
@@ -97,18 +96,18 @@ static void SpeedControl_GetEffectiveTargets(
  * Target 8 以下从零线性过渡，20 以上不再外推；倒车暂不使用前馈。
  * 前馈最多占输出上限的 75%，为 PI 修正保留余量。
  */
-static int32_t SpeedControl_CalculateFeedforward(int32_t target)
+static int32_t SpeedControl_CalculateFeedforward(float target)
 {
     float absoluteTarget;
     float magnitude;
     float minimumLinearOutput;
     float maximumFeedforward;
 
-    if (target <= 0) {
+    if (target <= 0.0f) {
         return 0;
     }
 
-    absoluteTarget = (target > SPEED_FF_MAX_TARGET) ?
+    absoluteTarget = (target > (float)SPEED_FF_MAX_TARGET) ?
         (float)SPEED_FF_MAX_TARGET : (float)target;
     minimumLinearOutput =
         SPEED_FF_OFFSET + SPEED_FF_GAIN * (float)SPEED_FF_LINEAR_TARGET;
@@ -157,7 +156,7 @@ static int32_t SpeedControl_ApplyFollowerTrim(
 static void SpeedPid_Reset(SpeedPid *pid)
 {
     pid->integral = 0.0f;
-    pid->previousError = 0;
+    pid->previousError = 0.0f;
 }
 
 /*
@@ -169,24 +168,24 @@ static void SpeedPid_Reset(SpeedPid *pid)
  */
 static int32_t SpeedPid_Update(
     SpeedPid *pid,
-    int32_t target,
+    float target,
     int32_t actual,
     int32_t feedforward)
 {
-    int32_t error;
+    float error;
     float integralStep;
     float integralCandidate;
     float output;
     float limitedOutput;
     const float limit = (float)SPEED_OUTPUT_LIMIT;
 
-    if (target == 0) {
+    if (target == 0.0f) {
         SpeedPid_Reset(pid);
         return 0;
     }
 
-    error = target - actual;
-    integralStep = SPEED_PID_KI * (float)error;
+    error = target - (float)actual;
+    integralStep = SPEED_PID_KI * error;
 
     if ((pid->integral > 0.0f && error <= -SPEED_UNLOAD_MIN_ERROR) ||
         (pid->integral < 0.0f && error >= SPEED_UNLOAD_MIN_ERROR)) {
@@ -198,9 +197,9 @@ static int32_t SpeedPid_Update(
         integralCandidate, -limit, limit);
 
     output = (float)feedforward +
-             SPEED_PID_KP * (float)error +
+             SPEED_PID_KP * error +
              integralCandidate +
-             SPEED_PID_KD * (float)(error - pid->previousError);
+             SPEED_PID_KD * (error - pid->previousError);
 
     if (output > limit || output < -limit) {
         limitedOutput = SpeedControl_ClampFloat(output, -limit, limit);
@@ -210,9 +209,9 @@ static int32_t SpeedPid_Update(
             integralCandidate, -limit, limit);
 
         output = (float)feedforward +
-                 SPEED_PID_KP * (float)error +
+                 SPEED_PID_KP * error +
                  integralCandidate +
-                 SPEED_PID_KD * (float)(error - pid->previousError);
+                 SPEED_PID_KD * (error - pid->previousError);
     }
 
     output = SpeedControl_ClampFloat(output, -limit, limit);
@@ -235,17 +234,10 @@ static void SpeedControl_StopOutputs(void)
 {
     s_leftControlTarget = 0;
     s_rightControlTarget = 0;
-    s_differentialTargetOffset = 0;
+    s_differentialTargetOffset = 0.0f;
 
     SpeedPid_Reset(&s_leftPid);
     SpeedPid_Reset(&s_rightPid);
-    s_telemetry.leftTarget = 0;
-    s_telemetry.rightTarget = 0;
-    s_telemetry.leftActual = 0;
-    s_telemetry.rightActual = 0;
-    s_telemetry.leftOutput = 0;
-    s_telemetry.rightOutput = 0;
-
     Motor_Stop(MOTOR1);
     Motor_Stop(MOTOR2);
     Motor_Stop(MOTOR3);
@@ -258,7 +250,7 @@ void SpeedControl_Init(void)
 {
     s_leftTarget = 0;
     s_rightTarget = 0;
-    s_differentialTargetOffset = 0;
+    s_differentialTargetOffset = 0.0f;
     s_running = false;
 
     SpeedControl_StopOutputs();
@@ -275,11 +267,11 @@ bool SpeedControl_SetTargets(int32_t leftTarget, int32_t rightTarget)
 
     s_leftTarget = leftTarget;
     s_rightTarget = rightTarget;
-    s_differentialTargetOffset = 0;
+    s_differentialTargetOffset = 0.0f;
     return true;
 }
 
-void SpeedControl_SetDifferentialTargetOffset(int32_t offset)
+void SpeedControl_SetDifferentialTargetOffsetFloat(float offset)
 {
     s_differentialTargetOffset = SpeedControl_ClampTarget(offset);
 }
@@ -309,8 +301,8 @@ bool SpeedControl_IsRunning(void)
 
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
 {
-    int32_t leftEffectiveTarget;
-    int32_t rightEffectiveTarget;
+    float leftEffectiveTarget;
+    float rightEffectiveTarget;
     int32_t leftFeedforward;
     int32_t rightFeedforward;
     int32_t leftOutput;
@@ -325,12 +317,12 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     SpeedControl_GetEffectiveTargets(
         &leftEffectiveTarget, &rightEffectiveTarget);
     s_leftControlTarget = SpeedControl_MoveToward(
-        s_leftControlTarget, leftEffectiveTarget, SPEED_TARGET_STEP);
+        s_leftControlTarget, leftEffectiveTarget, (float)SPEED_TARGET_STEP);
     s_rightControlTarget = SpeedControl_MoveToward(
-        s_rightControlTarget, rightEffectiveTarget, SPEED_TARGET_STEP);
+        s_rightControlTarget, rightEffectiveTarget, (float)SPEED_TARGET_STEP);
 
-    if (leftEffectiveTarget == 0 && rightEffectiveTarget == 0 &&
-        s_leftControlTarget == 0 && s_rightControlTarget == 0) {
+    if (leftEffectiveTarget == 0.0f && rightEffectiveTarget == 0.0f &&
+        s_leftControlTarget == 0.0f && s_rightControlTarget == 0.0f) {
         SpeedControl_Stop();
         return;
     }
@@ -346,20 +338,13 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     rightOutput = SpeedPid_Update(
         &s_rightPid, s_rightControlTarget, rightActual, rightFeedforward);
 
-    s_telemetry.leftTarget = s_leftControlTarget;
-    s_telemetry.rightTarget = s_rightControlTarget;
-    s_telemetry.leftActual = leftActual;
-    s_telemetry.rightActual = rightActual;
-    s_telemetry.leftOutput = leftOutput;
-    s_telemetry.rightOutput = rightOutput;
-
     /*
      * M4、M2 没有独立编码器，跟随同侧闭环输出。
      * 道路标定的静态补偿只在双侧都向前时生效。
      */
     leftFollowerOutput = leftOutput;
     rightFollowerOutput = rightOutput;
-    if (s_leftControlTarget > 0 && s_rightControlTarget > 0) {
+    if (s_leftControlTarget > 0.0f && s_rightControlTarget > 0.0f) {
         leftFollowerOutput = SpeedControl_ApplyFollowerTrim(
             leftOutput, SPEED_M4_TRIM_PERMILLE);
         rightFollowerOutput = SpeedControl_ApplyFollowerTrim(
@@ -370,11 +355,4 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     Motor_SetSpeed(MOTOR4, leftFollowerOutput);
     Motor_SetSpeed(MOTOR1, rightOutput);
     Motor_SetSpeed(MOTOR2, rightFollowerOutput);
-}
-
-void SpeedControl_GetTelemetry(SpeedControlTelemetry *telemetry)
-{
-    if (telemetry != 0) {
-        *telemetry = s_telemetry;
-    }
 }

@@ -62,7 +62,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     SYSCFG_DL_TIMER_0_init();
     SYSCFG_DL_I2C_OLED_init();
     SYSCFG_DL_UART_0_init();
-    SYSCFG_DL_UART_DIAG_init();
     SYSCFG_DL_SPI_IMU660RB_init();
     /* Ensure backup structures have no valid state */
 	gPWM_1Backup.backupRdy 	= false;
@@ -112,7 +111,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_TimerA_reset(TIMER_0_INST);
     DL_I2C_reset(I2C_OLED_INST);
     DL_UART_Main_reset(UART_0_INST);
-    DL_UART_Main_reset(UART_DIAG_INST);
     DL_SPI_reset(SPI_IMU660RB_INST);
 
     DL_GPIO_enablePower(GPIOA);
@@ -124,7 +122,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_TimerA_enablePower(TIMER_0_INST);
     DL_I2C_enablePower(I2C_OLED_INST);
     DL_UART_Main_enablePower(UART_0_INST);
-    DL_UART_Main_enablePower(UART_DIAG_INST);
     DL_SPI_enablePower(SPI_IMU660RB_INST);
     delay_cycles(POWER_STARTUP_DELAY);
 }
@@ -159,10 +156,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
         GPIO_UART_0_IOMUX_TX, GPIO_UART_0_IOMUX_TX_FUNC);
     DL_GPIO_initPeripheralInputFunction(
         GPIO_UART_0_IOMUX_RX, GPIO_UART_0_IOMUX_RX_FUNC);
-    DL_GPIO_initPeripheralOutputFunction(
-        GPIO_UART_DIAG_IOMUX_TX, GPIO_UART_DIAG_IOMUX_TX_FUNC);
-    DL_GPIO_initPeripheralInputFunction(
-        GPIO_UART_DIAG_IOMUX_RX, GPIO_UART_DIAG_IOMUX_RX_FUNC);
 
     DL_GPIO_initPeripheralOutputFunction(
         GPIO_SPI_IMU660RB_IOMUX_SCLK, GPIO_SPI_IMU660RB_IOMUX_SCLK_FUNC);
@@ -531,41 +524,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_UART_0_init(void)
 
 
     DL_UART_Main_enable(UART_0_INST);
-}
-static const DL_UART_Main_ClockConfig gUART_DIAGClockConfig = {
-    .clockSel    = DL_UART_MAIN_CLOCK_BUSCLK,
-    .divideRatio = DL_UART_MAIN_CLOCK_DIVIDE_RATIO_1
-};
-
-static const DL_UART_Main_Config gUART_DIAGConfig = {
-    .mode        = DL_UART_MAIN_MODE_NORMAL,
-    .direction   = DL_UART_MAIN_DIRECTION_TX_RX,
-    .flowControl = DL_UART_MAIN_FLOW_CONTROL_NONE,
-    .parity      = DL_UART_MAIN_PARITY_NONE,
-    .wordLength  = DL_UART_MAIN_WORD_LENGTH_8_BITS,
-    .stopBits    = DL_UART_MAIN_STOP_BITS_ONE
-};
-
-SYSCONFIG_WEAK void SYSCFG_DL_UART_DIAG_init(void)
-{
-    DL_UART_Main_setClockConfig(UART_DIAG_INST, (DL_UART_Main_ClockConfig *) &gUART_DIAGClockConfig);
-
-    DL_UART_Main_init(UART_DIAG_INST, (DL_UART_Main_Config *) &gUART_DIAGConfig);
-    /*
-     * Configure baud rate by setting oversampling and baud rate divisors.
-     *  Target baud rate: 115200
-     *  Actual baud rate: 115211.52
-     */
-    DL_UART_Main_setOversampling(UART_DIAG_INST, DL_UART_OVERSAMPLING_RATE_16X);
-    DL_UART_Main_setBaudRateDivisor(UART_DIAG_INST, UART_DIAG_IBRD_32_MHZ_115200_BAUD, UART_DIAG_FBRD_32_MHZ_115200_BAUD);
-
-
-    /* Configure FIFOs */
-    DL_UART_Main_enableFIFOs(UART_DIAG_INST);
-    DL_UART_Main_setRXFIFOThreshold(UART_DIAG_INST, DL_UART_RX_FIFO_LEVEL_ONE_ENTRY);
-    DL_UART_Main_setTXFIFOThreshold(UART_DIAG_INST, DL_UART_TX_FIFO_LEVEL_1_2_EMPTY);
-
-    DL_UART_Main_enable(UART_DIAG_INST);
 }
 
 static const DL_SPI_Config gSPI_IMU660RB_config = {

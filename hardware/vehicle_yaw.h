@@ -12,9 +12,10 @@ void VehicleYaw_Init(void);
 void VehicleYaw_Update5ms(float gyroYMdps);
 
 bool VehicleYaw_IsCalibrated(void);
-uint16_t VehicleYaw_GetCalibrationSamples(void);
-float VehicleYaw_GetBiasDps(void);
 float VehicleYaw_GetRateDps(void);
 float VehicleYaw_GetHeadingDeg(void);
+
+/* Returns the average heading only after 300 ms of continuous standstill. */
+bool VehicleYaw_GetStationaryReferenceDeg(float *referenceDeg);
 
 #endif /* VEHICLE_YAW_H */

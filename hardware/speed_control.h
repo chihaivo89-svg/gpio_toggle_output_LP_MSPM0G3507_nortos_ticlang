@@ -20,16 +20,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* 单次 20ms 更新后的速度环诊断快照。 */
-typedef struct {
-    int32_t leftTarget;
-    int32_t rightTarget;
-    int32_t leftActual;
-    int32_t rightActual;
-    int32_t leftOutput;
-    int32_t rightOutput;
-} SpeedControlTelemetry;
-
 /* 初始化正式速度环参数。初始化完成后四个电机保持停止。 */
 void SpeedControl_Init(void);
 
@@ -41,12 +31,11 @@ void SpeedControl_Init(void);
 bool SpeedControl_SetTargets(int32_t leftTarget, int32_t rightTarget);
 
 /*
- * Temporary heading-loop hook.  A positive offset requests leftTarget+offset
+ * 航向外环差速入口。正偏移表示 leftTarget+offset、
  * and rightTarget-offset, but only while both base targets are forward.
- * The offset is cleared by Start(), Stop(), and SetTargets(), so normal speed
- * control remains exactly symmetric unless an outer loop explicitly sets it.
+ * Start()、Stop() 和 SetTargets() 都会清零该偏移。
  */
-void SpeedControl_SetDifferentialTargetOffset(int32_t offset);
+void SpeedControl_SetDifferentialTargetOffsetFloat(float offset);
 
 /* 至少一侧目标非零时启动，启动成功返回 true。 */
 bool SpeedControl_Start(void);
@@ -59,8 +48,5 @@ bool SpeedControl_IsRunning(void);
 
 /* 每获得一组新的 20ms 编码器数据时调用一次。 */
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual);
-
-/* 获取最近一次更新使用的速度与闭环 PWM，不改变控制状态。 */
-void SpeedControl_GetTelemetry(SpeedControlTelemetry *telemetry);
 
 #endif /* __SPEED_CONTROL_H */
