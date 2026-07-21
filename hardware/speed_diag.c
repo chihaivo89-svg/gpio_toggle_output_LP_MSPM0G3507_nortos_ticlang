@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "encoder.h"
+#include "heading_tune.h"
 #include "motor.h"
 #include "speed_control.h"
 #include "speed_control_config.h"
@@ -236,8 +237,12 @@ void UART_DIAG_INST_IRQHandler(void)
     switch (DL_UART_Main_getPendingInterrupt(UART_DIAG_INST)) {
         case DL_UART_MAIN_IIDX_RX:
             while (!DL_UART_Main_isRXFIFOEmpty(UART_DIAG_INST)) {
-                SpeedDiag_HandleRxByte(
-                    DL_UART_Main_receiveData(UART_DIAG_INST));
+                uint8_t byte = DL_UART_Main_receiveData(UART_DIAG_INST);
+
+                /* @H,... frames belong to the temporary heading tuner. */
+                if (!HeadingTune_HandleRxByte(byte)) {
+                    SpeedDiag_HandleRxByte(byte);
+                }
             }
             break;
 

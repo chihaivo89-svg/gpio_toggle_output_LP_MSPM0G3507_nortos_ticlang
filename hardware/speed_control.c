@@ -24,6 +24,7 @@ static volatile int32_t s_leftTarget;
 static volatile int32_t s_rightTarget;
 static volatile int32_t s_leftControlTarget;
 static volatile int32_t s_rightControlTarget;
+static volatile int32_t s_differentialTargetOffset;
 static volatile bool s_running;
 
 /* ==================== 基础工具函数 ==================== */
@@ -56,6 +57,37 @@ static int32_t SpeedControl_MoveToward(
         return (next < target) ? target : next;
     }
     return current;
+}
+
+static int32_t SpeedControl_ClampTarget(int32_t target)
+{
+    if (target > SPEED_MAX_ABS_TARGET) {
+        return SPEED_MAX_ABS_TARGET;
+    }
+    if (target < -SPEED_MAX_ABS_TARGET) {
+        return -SPEED_MAX_ABS_TARGET;
+    }
+    return target;
+}
+
+/*
+ * Base targets belong to the normal speed-control API.  The optional heading
+ * outer loop never changes them; it only creates this per-sample effective
+ * target pair for a forward straight-line test.
+ */
+static void SpeedControl_GetEffectiveTargets(
+    int32_t *leftTarget,
+    int32_t *rightTarget)
+{
+    if (s_leftTarget > 0 && s_rightTarget > 0) {
+        *leftTarget = SpeedControl_ClampTarget(
+            s_leftTarget + s_differentialTargetOffset);
+        *rightTarget = SpeedControl_ClampTarget(
+            s_rightTarget - s_differentialTargetOffset);
+    } else {
+        *leftTarget = s_leftTarget;
+        *rightTarget = s_rightTarget;
+    }
 }
 
 /* ==================== V2 前馈与 PID ==================== */
@@ -203,9 +235,12 @@ static void SpeedControl_StopOutputs(void)
 {
     s_leftControlTarget = 0;
     s_rightControlTarget = 0;
+    s_differentialTargetOffset = 0;
 
     SpeedPid_Reset(&s_leftPid);
     SpeedPid_Reset(&s_rightPid);
+    s_telemetry.leftTarget = 0;
+    s_telemetry.rightTarget = 0;
     s_telemetry.leftActual = 0;
     s_telemetry.rightActual = 0;
     s_telemetry.leftOutput = 0;
@@ -223,6 +258,7 @@ void SpeedControl_Init(void)
 {
     s_leftTarget = 0;
     s_rightTarget = 0;
+    s_differentialTargetOffset = 0;
     s_running = false;
 
     SpeedControl_StopOutputs();
@@ -239,7 +275,13 @@ bool SpeedControl_SetTargets(int32_t leftTarget, int32_t rightTarget)
 
     s_leftTarget = leftTarget;
     s_rightTarget = rightTarget;
+    s_differentialTargetOffset = 0;
     return true;
+}
+
+void SpeedControl_SetDifferentialTargetOffset(int32_t offset)
+{
+    s_differentialTargetOffset = SpeedControl_ClampTarget(offset);
 }
 
 bool SpeedControl_Start(void)
@@ -267,6 +309,8 @@ bool SpeedControl_IsRunning(void)
 
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
 {
+    int32_t leftEffectiveTarget;
+    int32_t rightEffectiveTarget;
     int32_t leftFeedforward;
     int32_t rightFeedforward;
     int32_t leftOutput;
@@ -278,12 +322,14 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
         return;
     }
 
+    SpeedControl_GetEffectiveTargets(
+        &leftEffectiveTarget, &rightEffectiveTarget);
     s_leftControlTarget = SpeedControl_MoveToward(
-        s_leftControlTarget, s_leftTarget, SPEED_TARGET_STEP);
+        s_leftControlTarget, leftEffectiveTarget, SPEED_TARGET_STEP);
     s_rightControlTarget = SpeedControl_MoveToward(
-        s_rightControlTarget, s_rightTarget, SPEED_TARGET_STEP);
+        s_rightControlTarget, rightEffectiveTarget, SPEED_TARGET_STEP);
 
-    if (s_leftTarget == 0 && s_rightTarget == 0 &&
+    if (leftEffectiveTarget == 0 && rightEffectiveTarget == 0 &&
         s_leftControlTarget == 0 && s_rightControlTarget == 0) {
         SpeedControl_Stop();
         return;
@@ -300,6 +346,8 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     rightOutput = SpeedPid_Update(
         &s_rightPid, s_rightControlTarget, rightActual, rightFeedforward);
 
+    s_telemetry.leftTarget = s_leftControlTarget;
+    s_telemetry.rightTarget = s_rightControlTarget;
     s_telemetry.leftActual = leftActual;
     s_telemetry.rightActual = rightActual;
     s_telemetry.leftOutput = leftOutput;

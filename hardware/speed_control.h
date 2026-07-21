@@ -22,6 +22,8 @@
 
 /* 单次 20ms 更新后的速度环诊断快照。 */
 typedef struct {
+    int32_t leftTarget;
+    int32_t rightTarget;
     int32_t leftActual;
     int32_t rightActual;
     int32_t leftOutput;
@@ -37,6 +39,14 @@ void SpeedControl_Init(void);
  * 运行期间允许更新目标，内部斜坡会平滑跟随新目标。
  */
 bool SpeedControl_SetTargets(int32_t leftTarget, int32_t rightTarget);
+
+/*
+ * Temporary heading-loop hook.  A positive offset requests leftTarget+offset
+ * and rightTarget-offset, but only while both base targets are forward.
+ * The offset is cleared by Start(), Stop(), and SetTargets(), so normal speed
+ * control remains exactly symmetric unless an outer loop explicitly sets it.
+ */
+void SpeedControl_SetDifferentialTargetOffset(int32_t offset);
 
 /* 至少一侧目标非零时启动，启动成功返回 true。 */
 bool SpeedControl_Start(void);
