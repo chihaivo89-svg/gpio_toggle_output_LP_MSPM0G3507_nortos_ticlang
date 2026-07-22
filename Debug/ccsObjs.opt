@@ -9,12 +9,14 @@
 "./hardware/clock.o"
 "./hardware/delay.o"
 "./hardware/encoder.o"
+"./hardware/heading_control.o"
 "./hardware/key.o"
+"./hardware/menu.o"
 "./hardware/motor.o"
 "./hardware/oled_hardware_i2c.o"
 "./hardware/speed_control.o"
+"./hardware/ttop_funtion.o"
 "./hardware/vehicle_yaw.o"
-"./hardware/heading_control.o"
 -l"./device_linker.cmd"
 -ldevice.cmd.genlibs
 -llibc.a

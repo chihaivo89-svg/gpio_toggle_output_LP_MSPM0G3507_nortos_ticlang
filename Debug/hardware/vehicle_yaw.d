@@ -1,0 +1,5 @@
+# FIXED
+
+hardware/vehicle_yaw.o: ../hardware/vehicle_yaw.c \
+ ../hardware/vehicle_yaw.h
+../hardware/vehicle_yaw.h:
