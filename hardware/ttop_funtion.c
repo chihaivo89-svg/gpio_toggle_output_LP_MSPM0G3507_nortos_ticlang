@@ -10,6 +10,12 @@
 #include "speed_control.h"
 #include "heading_control.h"
 #include "vehicle_yaw.h"
+#include "track.h"
+#include "param_storage.h"
+#include "top_zhengfangxing.h"
+
+/* 循迹 UART 数据字节（gpio_toggle_output.c 中定义） */
+extern volatile uint8_t gRxByte;
 
 /* ---- 内部状态 ---- */
 static uint8_t s_lastStartFlag = 0U;
@@ -43,7 +49,38 @@ void Mode1_Task(void)
 
 void Mode2_Task(void)
 {
-    /* TODO: MODE2 具体逻辑 */
+    /* 10ms 分频计数：ModeExecTask 每 5ms 调用，2 次 = 10ms */
+    static uint8_t s_divider = 0U;
+
+    /* 首次调用时初始化 */
+    if (!SpeedControl_IsRunning()) {
+        int16_t baseSpd = g_modeParams[g_menuMode - 1U].trackBaseSpeed;
+        Track_Init();
+        TrackSquare_Init();
+        if (!SpeedControl_SetTargets(baseSpd, baseSpd)) {
+            return;
+        }
+        if (!SpeedControl_Start()) {
+            return;
+        }
+        s_divider = 0U;
+        return;
+    }
+
+    /* 每 2 次调用（10ms）执行一次正方形循迹 */
+    s_divider++;
+    if (s_divider < 2U) {
+        return;
+    }
+    s_divider = 0U;
+
+    TrackSquare_Task(gRxByte);
+
+    /* 检测是否已完成所有直角 → 停止运行，等待 RESET */
+    if (TrackSquare_GetState() == TRACK_STATE_FINISH) {
+        SpeedControl_Stop();
+        g_menuStartFlag = 0U;
+    }
 }
 
 void Mode3_Task(void)
@@ -72,9 +109,10 @@ void ModeExecTask(void)
         return;
     }
 
-    /* ---- START 上升沿：启动 ---- */
+    /* ---- START 上升沿：应用参数并启动 ---- */
     if (g_menuStartFlag && !s_lastStartFlag) {
         if (g_menuMode >= 1U && g_menuMode <= 4U) {
+            Param_ApplyMode(g_menuMode);
             s_running = 1U;
         }
     }

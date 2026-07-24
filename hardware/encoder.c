@@ -135,11 +135,13 @@ bool encoder_task(void)
     gEncMotor1.lastNegativeEdges = motor1Negative;
     gEncMotor1.lastPulses = Encoder_ReconstructPulses(
         motor1Positive, motor1Negative);
+    gEncMotor1.totalPulses += gEncMotor1.lastPulses;
 
     gEncMotor3.lastPositiveEdges = motor3Positive;
     gEncMotor3.lastNegativeEdges = motor3Negative;
     gEncMotor3.lastPulses = Encoder_ReconstructPulses(
         motor3Positive, motor3Negative);
+    gEncMotor3.totalPulses += gEncMotor3.lastPulses;
 
     return true;
 }

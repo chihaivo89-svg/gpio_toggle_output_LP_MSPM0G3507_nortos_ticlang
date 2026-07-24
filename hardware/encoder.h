@@ -28,6 +28,7 @@ typedef struct {
     uint32_t            captureCh;    /* CC 索引 */
 
     volatile int32_t    lastPulses;   /* 重建后的上一次 20ms 有符号脉冲数 */
+    volatile int32_t    totalPulses;  /* 累计脉冲（带符号，从启动开始累加） */
     volatile uint32_t   positiveEdges;     /* 当前 20ms 内判为正向的边沿 */
     volatile uint32_t   negativeEdges;     /* 当前 20ms 内判为反向的边沿 */
     volatile uint32_t   lastPositiveEdges; /* 上一次 20ms 的正向边沿数 */
@@ -53,6 +54,12 @@ bool encoder_task(void);
 static inline int32_t Encoder_GetPulses(const Encoder_Cfg *enc)
 {
     return enc->lastPulses;
+}
+
+/* 获取累计脉冲数（带符号，从启动开始累加） */
+static inline int32_t Encoder_GetTotalPulses(const Encoder_Cfg *enc)
+{
+    return enc->totalPulses;
 }
 
 static inline uint32_t Encoder_GetPositiveEdges(const Encoder_Cfg *enc)

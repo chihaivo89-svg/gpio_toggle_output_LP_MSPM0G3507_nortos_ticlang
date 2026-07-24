@@ -49,4 +49,14 @@ bool SpeedControl_IsRunning(void);
 /* 每获得一组新的 20ms 编码器数据时调用一次。 */
 void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual);
 
+/* ---- 在线调参接口（供菜单使用） ---- */
+float  SpeedControl_GetKp(void);
+void   SpeedControl_SetKp(float v);
+float  SpeedControl_GetKi(void);
+void   SpeedControl_SetKi(float v);
+float  SpeedControl_GetKd(void);
+void   SpeedControl_SetKd(float v);
+int16_t SpeedControl_GetOutLimit(void);
+void   SpeedControl_SetOutLimit(int16_t v);
+
 #endif /* __SPEED_CONTROL_H */

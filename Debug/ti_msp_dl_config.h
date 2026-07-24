@@ -182,6 +182,22 @@ extern "C" {
 #define UART_0_BAUD_RATE                                                (115200)
 #define UART_0_IBRD_32_MHZ_115200_BAUD                                      (17)
 #define UART_0_FBRD_32_MHZ_115200_BAUD                                      (23)
+/* Defines for UART_1 */
+#define UART_1_INST                                                        UART3
+#define UART_1_INST_FREQUENCY                                           32000000
+#define UART_1_INST_IRQHandler                                  UART3_IRQHandler
+#define UART_1_INST_INT_IRQN                                      UART3_INT_IRQn
+#define GPIO_UART_1_RX_PORT                                                GPIOB
+#define GPIO_UART_1_TX_PORT                                                GPIOB
+#define GPIO_UART_1_RX_PIN                                         DL_GPIO_PIN_3
+#define GPIO_UART_1_TX_PIN                                         DL_GPIO_PIN_2
+#define GPIO_UART_1_IOMUX_RX                                     (IOMUX_PINCM16)
+#define GPIO_UART_1_IOMUX_TX                                     (IOMUX_PINCM15)
+#define GPIO_UART_1_IOMUX_RX_FUNC                      IOMUX_PINCM16_PF_UART3_RX
+#define GPIO_UART_1_IOMUX_TX_FUNC                      IOMUX_PINCM15_PF_UART3_TX
+#define UART_1_BAUD_RATE                                                  (9600)
+#define UART_1_IBRD_32_MHZ_9600_BAUD                                       (208)
+#define UART_1_FBRD_32_MHZ_9600_BAUD                                        (21)
 
 
 
@@ -268,6 +284,24 @@ extern "C" {
 #define KEY_KEY4_PORT                                                    (GPIOB)
 #define KEY_KEY4_PIN                                            (DL_GPIO_PIN_20)
 #define KEY_KEY4_IOMUX                                           (IOMUX_PINCM48)
+/* Port definition for Pin Group USER_SPI */
+#define USER_SPI_PORT                                                    (GPIOB)
+
+/* Defines for CSN: GPIOB.12 with pinCMx 29 on package pin 64 */
+#define USER_SPI_CSN_PIN                                        (DL_GPIO_PIN_12)
+#define USER_SPI_CSN_IOMUX                                       (IOMUX_PINCM29)
+/* Defines for CE: GPIOB.6 with pinCMx 23 on package pin 58 */
+#define USER_SPI_CE_PIN                                          (DL_GPIO_PIN_6)
+#define USER_SPI_CE_IOMUX                                        (IOMUX_PINCM23)
+/* Defines for MOSI: GPIOB.7 with pinCMx 24 on package pin 59 */
+#define USER_SPI_MOSI_PIN                                        (DL_GPIO_PIN_7)
+#define USER_SPI_MOSI_IOMUX                                      (IOMUX_PINCM24)
+/* Defines for SCK: GPIOB.8 with pinCMx 25 on package pin 60 */
+#define USER_SPI_SCK_PIN                                         (DL_GPIO_PIN_8)
+#define USER_SPI_SCK_IOMUX                                       (IOMUX_PINCM25)
+/* Defines for MISO: GPIOB.9 with pinCMx 26 on package pin 61 */
+#define USER_SPI_MISO_PIN                                        (DL_GPIO_PIN_9)
+#define USER_SPI_MISO_IOMUX                                      (IOMUX_PINCM26)
 
 
 /* clang-format on */
@@ -283,6 +317,7 @@ void SYSCFG_DL_E3_B_init(void);
 void SYSCFG_DL_TIMER_0_init(void);
 void SYSCFG_DL_I2C_OLED_init(void);
 void SYSCFG_DL_UART_0_init(void);
+void SYSCFG_DL_UART_1_init(void);
 void SYSCFG_DL_SPI_IMU660RB_init(void);
 
 

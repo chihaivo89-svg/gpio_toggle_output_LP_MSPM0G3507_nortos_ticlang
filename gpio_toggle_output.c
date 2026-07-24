@@ -19,12 +19,18 @@
 #include "IMU660RB/imu660rb.h"
 #include "menu.h"
 #include "ttop_funtion.h"
+#include "track.h"
+#include "param_storage.h"
+#include "si24r1.h"
 
 /* ==================== 主程序状态 ==================== */
 
 /* UART1 循迹数据预留。 */
 volatile uint8_t gRxByte = 0;
 volatile bool gDataReceived = false;
+
+/* NR02 2.4G 接收数据（供菜单调试页显示） */
+volatile uint8_t g_nr02RxData = 0;
 
 static uint8_t sched_tick = 0;
 static bool speed_sample_ready = false;
@@ -37,6 +43,16 @@ static void App_ProcessTrackUart(void)
     if (gDataReceived) {
         gDataReceived = false;
         DL_UART_Main_transmitDataBlocking(UART_0_INST, gRxByte);
+    }
+}
+
+/* 2.4G 无线接收简单处理（后续可扩展） */
+static uint8_t s_nr02_buf[32];
+
+static void App_ProcessNR02(void)
+{
+    if (Si24R1_RxPacket(s_nr02_buf) == 0U) {
+        g_nr02RxData = s_nr02_buf[0];
     }
 }
 
@@ -134,11 +150,15 @@ int main(void)
     IMU660RB_Init();
     VehicleYaw_Init();
     HeadingControl_Init();
+    Track_Init();
 
     Menu_Init();
+    Param_Init();
+    RF_RX_Init();
 
     while (1) {
         App_ProcessTrackUart();
+        App_ProcessNR02();
         Menu_HandleKeys();
         Menu_Draw();
     }

@@ -10,6 +10,12 @@
  * 左侧 M3、右侧 M1 使用编码器闭环，M4、M2 跟随同侧闭环输出。
  */
 
+/* ---- 在线调参运行时变量（菜单可修改） ---- */
+float   g_speedPidKp       = SPEED_PID_KP;
+float   g_speedPidKi       = SPEED_PID_KI;
+float   g_speedPidKd       = SPEED_PID_KD;
+int16_t g_speedPidOutLimit = SPEED_OUTPUT_LIMIT;
+
 typedef struct {
     float integral;
     float previousError;
@@ -120,7 +126,7 @@ static int32_t SpeedControl_CalculateFeedforward(float target)
     }
 
     maximumFeedforward =
-        (float)SPEED_OUTPUT_LIMIT * (float)SPEED_FF_MAX_PERMILLE /
+        (float)g_speedPidOutLimit * (float)SPEED_FF_MAX_PERMILLE /
         (float)SPEED_TRIM_SCALE_BASE;
     magnitude = SpeedControl_ClampFloat(
         magnitude, 0.0f, maximumFeedforward);
@@ -144,11 +150,11 @@ static int32_t SpeedControl_ApplyFollowerTrim(
                  SPEED_TRIM_SCALE_BASE;
     }
 
-    if (scaled > SPEED_OUTPUT_LIMIT) {
-        return SPEED_OUTPUT_LIMIT;
+    if (scaled > g_speedPidOutLimit) {
+        return g_speedPidOutLimit;
     }
-    if (scaled < -SPEED_OUTPUT_LIMIT) {
-        return -SPEED_OUTPUT_LIMIT;
+    if (scaled < -g_speedPidOutLimit) {
+        return -g_speedPidOutLimit;
     }
     return scaled;
 }
@@ -177,7 +183,7 @@ static int32_t SpeedPid_Update(
     float integralCandidate;
     float output;
     float limitedOutput;
-    const float limit = (float)SPEED_OUTPUT_LIMIT;
+    const float limit = (float)g_speedPidOutLimit;
 
     if (target == 0.0f) {
         SpeedPid_Reset(pid);
@@ -185,7 +191,7 @@ static int32_t SpeedPid_Update(
     }
 
     error = target - (float)actual;
-    integralStep = SPEED_PID_KI * error;
+    integralStep = g_speedPidKi * error;
 
     if ((pid->integral > 0.0f && error <= -SPEED_UNLOAD_MIN_ERROR) ||
         (pid->integral < 0.0f && error >= SPEED_UNLOAD_MIN_ERROR)) {
@@ -197,9 +203,9 @@ static int32_t SpeedPid_Update(
         integralCandidate, -limit, limit);
 
     output = (float)feedforward +
-             SPEED_PID_KP * error +
+             g_speedPidKp * error +
              integralCandidate +
-             SPEED_PID_KD * (error - pid->previousError);
+             g_speedPidKd * (error - pid->previousError);
 
     if (output > limit || output < -limit) {
         limitedOutput = SpeedControl_ClampFloat(output, -limit, limit);
@@ -209,9 +215,9 @@ static int32_t SpeedPid_Update(
             integralCandidate, -limit, limit);
 
         output = (float)feedforward +
-                 SPEED_PID_KP * error +
+                 g_speedPidKp * error +
                  integralCandidate +
-                 SPEED_PID_KD * (error - pid->previousError);
+                 g_speedPidKd * (error - pid->previousError);
     }
 
     output = SpeedControl_ClampFloat(output, -limit, limit);
@@ -355,4 +361,18 @@ void SpeedControl_Update20ms(int32_t leftActual, int32_t rightActual)
     Motor_SetSpeed(MOTOR4, leftFollowerOutput);
     Motor_SetSpeed(MOTOR1, rightOutput);
     Motor_SetSpeed(MOTOR2, rightFollowerOutput);
+}
+
+/* ---- 在线调参接口 ---- */
+
+float SpeedControl_GetKp(void)           { return g_speedPidKp; }
+void  SpeedControl_SetKp(float v)        { if (v >= 0.0f) g_speedPidKp = v; }
+float SpeedControl_GetKi(void)           { return g_speedPidKi; }
+void  SpeedControl_SetKi(float v)        { if (v >= 0.0f) g_speedPidKi = v; }
+float SpeedControl_GetKd(void)           { return g_speedPidKd; }
+void  SpeedControl_SetKd(float v)        { if (v >= 0.0f) g_speedPidKd = v; }
+int16_t SpeedControl_GetOutLimit(void)   { return g_speedPidOutLimit; }
+void    SpeedControl_SetOutLimit(int16_t v)
+{
+    if (v > 0 && v <= 1000) g_speedPidOutLimit = v;
 }

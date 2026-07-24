@@ -88,4 +88,11 @@
 #error "SPEED_OUTPUT_LIMIT must be in range 0..1000"
 #endif
 
+/* ==================== 在线调参运行时变量 ==================== */
+/* 由菜单编辑，speed_control.c 中定义。初始值来自上方宏定义。 */
+extern float   g_speedPidKp;
+extern float   g_speedPidKi;
+extern float   g_speedPidKd;
+extern int16_t g_speedPidOutLimit;
+
 #endif /* SPEED_CONTROL_CONFIG_H */

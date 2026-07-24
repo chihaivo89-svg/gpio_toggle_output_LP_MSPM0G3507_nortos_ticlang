@@ -1,9 +1,9 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-64(PM)" --product "mspm0_sdk@2.09.00.00"
- * @v2CliArgs --device "MSPM0G3507" --package "LQFP-64(PM)" --product "mspm0_sdk@2.09.00.00"
- * @versions {"tool":"1.26.0+4407"}
+ * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-64(PM)" --product "mspm0_sdk@2.10.00.04"
+ * @v2CliArgs --device "MSPM0G3507" --package "LQFP-64(PM)" --product "mspm0_sdk@2.10.00.04"
+ * @versions {"tool":"1.27.0+4565"}
  */
 
 /**
@@ -17,6 +17,7 @@ const GPIO1    = GPIO.addInstance();
 const GPIO2    = GPIO.addInstance();
 const GPIO3    = GPIO.addInstance();
 const GPIO4    = GPIO.addInstance();
+const GPIO5    = GPIO.addInstance();
 const I2C      = scripting.addModule("/ti/driverlib/I2C", {}, false);
 const I2C1     = I2C.addInstance();
 const PWM      = scripting.addModule("/ti/driverlib/PWM", {}, false);
@@ -29,6 +30,7 @@ const TIMER    = scripting.addModule("/ti/driverlib/TIMER", {}, false);
 const TIMER1   = TIMER.addInstance();
 const UART     = scripting.addModule("/ti/driverlib/UART", {}, false);
 const UART1    = UART.addInstance();
+const UART2    = UART.addInstance();
 
 /**
  * Write custom configuration values to the imported modules.
@@ -105,6 +107,20 @@ GPIO4.associatedPins[3].direction        = "INPUT";
 GPIO4.associatedPins[3].internalResistor = "PULL_UP";
 GPIO4.associatedPins[3].pin.$assign      = "PB20";
 
+GPIO5.$name                         = "USER_SPI";
+GPIO5.associatedPins.create(5);
+GPIO5.associatedPins[0].$name       = "CSN";
+GPIO5.associatedPins[0].pin.$assign = "PB12";
+GPIO5.associatedPins[1].$name       = "CE";
+GPIO5.associatedPins[1].pin.$assign = "PB6";
+GPIO5.associatedPins[2].$name       = "MOSI";
+GPIO5.associatedPins[2].pin.$assign = "PB7";
+GPIO5.associatedPins[3].$name       = "SCK";
+GPIO5.associatedPins[3].pin.$assign = "PB8";
+GPIO5.associatedPins[4].$name       = "MISO";
+GPIO5.associatedPins[4].direction   = "INPUT";
+GPIO5.associatedPins[4].pin.$assign = "PB9";
+
 I2C1.basicEnableController             = true;
 I2C1.basicControllerStandardBusSpeed   = "Fast";
 I2C1.$name                             = "I2C_OLED";
@@ -168,20 +184,19 @@ TIMER1.timerPeriod     = "1 ms";
 TIMER1.timerStartTimer = true;
 TIMER1.interrupts      = ["ZERO"];
 
-UART1.targetBaudRate                   = 115200;
-UART1.enabledInterrupts                = ["RX"];
-UART1.$name                            = "UART_0";
-UART1.peripheral.rxPin.$assign         = "PA9";
-UART1.peripheral.txPin.$assign         = "PA8";
-UART1.txPinConfig.direction            = scripting.forceWrite("OUTPUT");
-UART1.txPinConfig.hideOutputInversion  = scripting.forceWrite(false);
-UART1.txPinConfig.onlyInternalResistor = scripting.forceWrite(false);
-UART1.txPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
-UART1.txPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric2";
-UART1.rxPinConfig.hideOutputInversion  = scripting.forceWrite(false);
-UART1.rxPinConfig.onlyInternalResistor = scripting.forceWrite(false);
-UART1.rxPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
-UART1.rxPinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric3";
+UART1.$name                    = "UART_0";
+UART1.targetBaudRate           = 115200;
+UART1.enabledInterrupts        = ["RX"];
+UART1.peripheral.rxPin.$assign = "PA9";
+UART1.peripheral.txPin.$assign = "PA8";
+UART1.txPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric2";
+UART1.rxPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric3";
+
+UART2.$name                    = "UART_1";
+UART2.peripheral.rxPin.$assign = "PB3";
+UART2.peripheral.txPin.$assign = "PB2";
+UART2.txPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric13";
+UART2.rxPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric14";
 
 /**
  * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
@@ -197,3 +212,4 @@ I2C1.peripheral.$suggestSolution           = "I2C1";
 SPI1.peripheral.$suggestSolution           = "SPI1";
 TIMER1.peripheral.$suggestSolution         = "TIMA0";
 UART1.peripheral.$suggestSolution          = "UART1";
+UART2.peripheral.$suggestSolution          = "UART3";
