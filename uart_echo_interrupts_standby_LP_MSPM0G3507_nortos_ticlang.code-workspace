@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../uart_echo_interrupts_standby_LP_MSPM0G3507_nortos_ticlang"
+		},
+		{
+			"path": "../gpio_toggle_output_LP_MSPM0G3507_nortos_ticlang"
+		}
+	],
+	"settings": {}
+}
